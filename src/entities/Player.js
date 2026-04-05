@@ -19,7 +19,7 @@ export function createPlayer() {
   entity.velocity    = new VelocityComponent(0, 0);
   // 6 ticks per frame — matches PlayerObject._ticks_per_frame in the original
   entity.animation   = new AnimationComponent(6);
-  entity.animation.setAnimation('MAN_DOWN');
+  entity.animation.animationKey = 'MAN_DOWN';
   entity.player      = new PlayerComponent();
   entity.health      = new HealthComponent();
   entity.collision   = new CollisionComponent();

@@ -22,6 +22,13 @@ export class AnimationSystem {
       const frames = assetManager.getAnimation(anim.animationKey);
       if (!frames || !frames.length) continue;
 
+      // Reset frame/ticks when the animation key changes
+      if (anim.animationKey !== anim._prevAnimationKey) {
+        anim.frame = 0;
+        anim.ticks = 0;
+        anim._prevAnimationKey = anim.animationKey;
+      }
+
       if (anim.shouldAnimate) {
         anim.ticks += dt;
         if (anim.ticks >= anim.ticksPerFrame) {

@@ -182,8 +182,8 @@ export class EnemySystem {
     ai.dirY = dy;
     ai.speed = ENEMY[enemy.type].movement_speed;
 
-    const animKey = (dx < 0 || dy > 0) ? enemy.type + '_LD' : enemy.type + '_RU';
-    anim.setAnimation(animKey);
+    anim.animationKey = (dx < 0 || dy > 0) ? enemy.type + '_LD' : enemy.type + '_RU';
+    anim.loop = true;
   }
 
   moveEnemy(ai, transform, gameState, dt) {
@@ -251,7 +251,7 @@ export class EnemySystem {
     render.sprite = assetManager.getSprite(enemy.type + '_DEATH');
 
     // Remove from live list and award score immediately; move to dying list for animation
-    gameState.addScore(enemy.points);
+    gameState.score += enemy.points;
     gameState.enemies.splice(idx, 1);
     gameState.dyingEnemies.push(entityId);
 
@@ -261,7 +261,7 @@ export class EnemySystem {
       );
       if (gsEntity) {
         const sound = engine.getComponent(gsEntity.id, SoundComponent);
-        if (sound) sound.request('pause');
+        if (sound) sound.queue.push('pause');
       }
     }
   }
@@ -271,7 +271,8 @@ export class EnemySystem {
       enemy.deathWaitLeft -= dt;
       if (enemy.deathWaitLeft <= 0) {
         enemy.deathPhase = 2;
-        anim.setAnimation('ENEMY_DEATH', false);
+        anim.animationKey = 'ENEMY_DEATH';
+        anim.loop = false;
         anim.shouldAnimate = true;
         render.sprite = null;
       }

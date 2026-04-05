@@ -30,11 +30,13 @@ export class MapSystem {
         }
         map.push(row);
       }
-      gameState.setMap(map);
+      gameState.gameMap = map;
+      gameState.softBlockCount = 0;
 
       for (let y = 0; y < map.length; y++) {
         for (let x = 0; x < map[y].length; x++) {
           if (map[y][x] & TYPE.SOFT_BLOCK) {
+            gameState.softBlockCount++;
             const entity = createSoftBlock(x, y);
             engine.addEntity(entity);
             engine.addComponent(entity.id, entity.transform);

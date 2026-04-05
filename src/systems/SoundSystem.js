@@ -1,7 +1,6 @@
 import { soundManager } from '../utils/SoundManager.js';
 import { SoundComponent } from '../components/SoundComponent.js';
 import { AnimationComponent } from '../components/AnimationComponent.js';
-import { VelocityComponent } from '../components/VelocityComponent.js';
 import { PlayerComponent } from '../components/PlayerComponent.js';
 
 export class SoundSystem {
@@ -19,19 +18,18 @@ export class SoundSystem {
       // avoiding sound coupling in the movement/input logic.
       const playerInput = engine.getComponent(id, PlayerComponent);
       if (playerInput) {
-        const velocity = engine.getComponent(id, VelocityComponent);
-        const anim     = engine.getComponent(id, AnimationComponent);
-        const moving   = velocity && (velocity.vx !== 0 || velocity.vy !== 0);
+        const anim = engine.getComponent(id, AnimationComponent);
 
-        if (moving && anim && anim.frame !== sound._lastAnimFrame) {
+        if (anim && anim.shouldAnimate && anim.frame !== sound._lastAnimFrame) {
           sound._lastAnimFrame = anim.frame;
           // Mirrors original: play once at the start of frame 1 per animation cycle
           if (anim.frame === 1) {
-            soundManager.play(velocity.vx !== 0 ? 'step_lr' : 'step_ud');
+            const isLR = anim.animationKey === 'MAN_LEFT' || anim.animationKey === 'MAN_RIGHT';
+            soundManager.play(isLR ? 'step_lr' : 'step_ud');
           }
         }
 
-        if (!moving) sound._lastAnimFrame = -1; // reset so first step plays immediately next time
+        if (!anim || !anim.shouldAnimate) sound._lastAnimFrame = -1; // reset so first step plays immediately next time
       }
 
       // Play all queued sounds and clear the queue

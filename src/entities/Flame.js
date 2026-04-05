@@ -15,7 +15,8 @@ export function createFlame(gridX, gridY, type) {
   entity.transform = new TransformComponent(gridX * BLOCK_WIDTH, gridY * BLOCK_HEIGHT);
   entity.render = new RenderComponent(null, BLOCK_WIDTH, BLOCK_HEIGHT, 4);
   entity.animation = new AnimationComponent(EXPLO_ANIM_TICKS_PER_FRAME);
-  entity.animation.setAnimation('EXPLO_' + type, false); // non-looping, plays once
+  entity.animation.animationKey = 'EXPLO_' + type;
+  entity.animation.loop = false; // non-looping, plays once
   entity.animation.shouldAnimate = true;
   entity.flame = new FlameComponent(gridX, gridY, type, EXPLO_LIFE_TICKS);
   return entity;

@@ -13,7 +13,7 @@ export function createBomb(gridX, gridY, bombYield, ownerId) {
   entity.render     = new RenderComponent(null, BLOCK_WIDTH, BLOCK_HEIGHT, 3);
   // 18 ticks per frame — matches BombObject._ticks_per_frame in the original
   entity.animation  = new AnimationComponent(18);
-  entity.animation.setAnimation('BOMB');
+  entity.animation.animationKey = 'BOMB';
   entity.animation.shouldAnimate = true;
   entity.bomb        = new BombComponent(gridX, gridY, bombYield, ownerId);
   entity.destroyable = new DestroyableComponent();

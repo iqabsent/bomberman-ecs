@@ -1,4 +1,4 @@
-import { STATE, BLOCK_WIDTH, BLOCK_HEIGHT, LEVEL } from '../ecs/config.js';
+import { STATE, BLOCK_WIDTH, BLOCK_HEIGHT, LEVEL, DEFAULT_LIVES, LEVEL_TIME } from '../ecs/config.js';
 import { GameStateComponent } from '../components/GameStateComponent.js';
 import { TransformComponent } from '../components/TransformComponent.js';
 import { VelocityComponent } from '../components/VelocityComponent.js';
@@ -21,7 +21,7 @@ export class LevelSystem {
 
         // Remove all old entities before MapSystem/EnemySystem spawn new ones
         LevelSystem.removeAllLevelEntities(gameState, engine);
-        LevelSystem.resetPlayer(engine, gameState, gameState.previousState === STATE.TITLE);
+        LevelSystem.resetPlayer(engine, gameState.previousState === STATE.TITLE);
 
         // Reset game state based on where we came from
         if (gameState.previousState === STATE.LEVEL_CLEAR) {
@@ -29,10 +29,14 @@ export class LevelSystem {
             gameState.toGameWonState();
             return;
           }
-          gameState.nextLevel();
+          gameState.currentLevel++;
           gameState.lives++;
+          LevelSystem.resetLevelState(gameState);
         } else if (gameState.previousState === STATE.TITLE) {
-          gameState.newGame();
+          gameState.currentLevel = 0;
+          gameState.lives = DEFAULT_LIVES;
+          gameState.score = 0;
+          LevelSystem.resetLevelState(gameState);
         }
       }
 
@@ -64,11 +68,32 @@ export class LevelSystem {
         player.activeBombs = 0;
         health.isDying = false;
         health.deathAnimStarted = false;
-        anim.setAnimation('MAN_DOWN');
+        anim.animationKey = 'MAN_DOWN';
+        anim.loop = true;
         anim.shouldAnimate = false;
       }
       return;
     }
+  }
+
+  static resetLevelState(gameState) {
+    gameState.gameTime = LEVEL_TIME;
+    gameState.timeUp = false;
+    gameState.powerSpawned = false;
+    gameState.doorSpawned = false;
+    gameState.doorTriggered = false;
+    gameState.door = null;
+    gameState.gameMap = null;
+    gameState.powerups = [];
+    gameState.bombs = [];
+    gameState.flames = [];
+    gameState.enemies = [];
+    gameState.dyingEnemies = [];
+    gameState.softBlocks = [];
+    gameState.pendingMapReveals = [];
+    gameState.pendingEnemySpawnDoor  = null;
+    gameState.pendingEnemySpawnTimer = false;
+    gameState.levelPowerCollected    = false;
   }
 
   static removeAllLevelEntities(gameState, engine) {
@@ -81,7 +106,8 @@ export class LevelSystem {
     if (gameState.door) engine.removeEntity(gameState.door);
   }
 
-  static resetPlayer(engine, gameState, resetPowerups = false) {
+  // TODO: player reset logic should belong to PlayerSystem, not LevelSystem
+  static resetPlayer(engine, resetPowerups = false) {
     for (const [id] of engine.entities.entries()) {
       const player = engine.getComponent(id, PlayerComponent);
       if (!player) continue;
@@ -99,12 +125,12 @@ export class LevelSystem {
       velocity.vx = 0;
       velocity.vy = 0;
       if (resetPowerups) {
-        player.reset();
+        player.needsReset = true;
       } else {
         player.activeBombs = 0;
       }
       if (health) { health.isDying = false; health.deathAnimStarted = false; }
-      anim.setAnimation('MAN_DOWN');
+      anim.animationKey = 'MAN_DOWN';
       anim.shouldAnimate = false;
     }
   }

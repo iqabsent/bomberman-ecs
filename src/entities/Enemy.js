@@ -16,7 +16,7 @@ export function createEnemy(type, stats, gridX, gridY) {
   entity.render      = new RenderComponent(null, BLOCK_WIDTH, BLOCK_HEIGHT, 5);
   // 18 ticks per frame — matches EnemyObject._ticks_per_frame in the original
   entity.animation   = new AnimationComponent(18);
-  entity.animation.setAnimation(type + '_LD');
+  entity.animation.animationKey = type + '_LD';
   entity.animation.shouldAnimate = true;
   entity.ai          = new AIComponent(stats);
   entity.enemy       = new EnemyComponent(type, stats);

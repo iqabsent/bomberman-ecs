@@ -23,9 +23,9 @@ export class CollectibleSystem {
       const collectorId = collectible.pickedUpBy;
       const player     = engine.getComponent(collectorId, PlayerComponent);
       if (player) {
-        player.applyPowerup(collectible.type);
+        player.pendingPowerup = collectible.type;
         const sound = engine.getComponent(collectorId, SoundComponent);
-        if (sound) sound.request('powerup');
+        if (sound) sound.queue.push('powerup');
 
         const levelPower = LEVEL[gameState.currentLevel % LEVEL.length].power;
         if (collectible.type === levelPower) gameState.levelPowerCollected = true;

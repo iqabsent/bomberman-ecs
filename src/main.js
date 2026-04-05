@@ -36,9 +36,9 @@ const init = async () => {
   const engine = new Engine();
 
   // Register systems in order of execution
+  engine.registerSystem('level',       new LevelSystem());
   engine.registerSystem('map',         new MapSystem());
   engine.registerSystem('enemy',       new EnemySystem());
-  engine.registerSystem('level',       new LevelSystem());
   engine.registerSystem('timer',       new TimerSystem());
   engine.registerSystem('input',       new InputSystem());
   engine.registerSystem('collision',   new CollisionSystem());

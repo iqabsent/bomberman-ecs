@@ -1,4 +1,4 @@
-import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE } from '../ecs/config.js';
+import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER } from '../ecs/config.js';
 import { GameStateComponent } from '../components/GameStateComponent.js';
 import { TransformComponent } from '../components/TransformComponent.js';
 import { VelocityComponent } from '../components/VelocityComponent.js';
@@ -40,6 +40,16 @@ export class PlayerSystem {
       const player = engine.getComponent(id, PlayerComponent);
       if (!player) continue;
 
+      if (player.needsReset) {
+        player.needsReset = false;
+        PlayerSystem.resetPlayerStats(player);
+      }
+
+      if (player.pendingPowerup) {
+        PlayerSystem.applyPowerup(player, player.pendingPowerup);
+        player.pendingPowerup = null;
+      }
+
       const health    = engine.getComponent(id, HealthComponent);
       const anim      = engine.getComponent(id, AnimationComponent);
       const transform = engine.getComponent(id, TransformComponent);
@@ -66,10 +76,11 @@ export class PlayerSystem {
         health.deathAnimStarted = true;
         velocity.vx = 0;
         velocity.vy = 0;
-        anim.setAnimation('MAN_DEATH', false);
+        anim.animationKey = 'MAN_DEATH';
+        anim.loop = false;
         anim.shouldAnimate = true;
         const sound = engine.getComponent(id, SoundComponent);
-        if (sound) sound.request('burn');
+        if (sound) sound.queue.push('burn');
         continue;
       }
 
@@ -89,5 +100,30 @@ export class PlayerSystem {
         gameState.toGameOverState();
       }
     }
+  }
+
+  static applyPowerup(player, type) {
+    switch (type) {
+      case 'FLAME':      player.bombYield = Math.min(player.bombYield + 1, MAX_YIELD); break;
+      case 'BOMB':       player.maxBombs  = Math.min(player.maxBombs  + 1, MAX_BOMBS); break;
+      case 'SPEED':      player.movementSpeed = SPEED.FAST; break;
+      case 'DETONATE':   player.canDetonate = true; break;
+      case 'PASS_BOMB':  player.canPassBomb = true; break;
+      case 'PASS_WALL':  player.canPassWall = true; break;
+      case 'FIREPROOF':  player.fireproof = true; break;
+      case 'INVINCIBLE': player.invincibilityTimer = INVINCIBILITY_TIMER; break;
+    }
+  }
+
+  static resetPlayerStats(player) {
+    player.maxBombs = 1;
+    player.bombYield = 1;
+    player.activeBombs = 0;
+    player.movementSpeed = SPEED.NORMAL;
+    player.canDetonate = false;
+    player.canPassBomb = false;
+    player.canPassWall = false;
+    player.fireproof = false;
+    player.invincibilityTimer = 0;
   }
 }

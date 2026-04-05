@@ -1,5 +1,4 @@
-import { BLOCK_WIDTH, BLOCK_HEIGHT, TYPE, DIRECTIONS } from '../ecs/config.js';
-import { CHAIN_DELAY_TICKS } from '../components/BombComponent.js';
+import { BLOCK_WIDTH, BLOCK_HEIGHT, TYPE, DIRECTIONS, BOMB_CHAIN_FUSE_TICKS } from '../ecs/config.js';
 import { GameStateComponent } from '../components/GameStateComponent.js';
 import { TransformComponent } from '../components/TransformComponent.js';
 import { PlayerComponent } from '../components/PlayerComponent.js';
@@ -41,23 +40,20 @@ export class BombSystem {
       const destroyable = engine.getComponent(bombId, DestroyableComponent);
       if (!bomb) continue;
 
-      // Chain hit — start delay (overrides canDetonate; chains always propagate)
-      if (destroyable && destroyable.burning && bomb.chainDelayTicks <= 0) {
-        bomb.chainDelayTicks = CHAIN_DELAY_TICKS;
-      }
-
-      // Chain delay — always ticks regardless of canDetonate
-      if (bomb.chainDelayTicks > 0) {
-        bomb.chainDelayTicks -= dt;
-        if (bomb.chainDelayTicks <= 0) toDetonate.push(bombId);
-        continue;
+      // Chain hit — shorten fuse and mark as chained so canDetonate can't block it
+      if (destroyable && destroyable.burning && !bomb.chained) {
+        bomb.chained = true;
+        bomb.fuseTicks = BOMB_CHAIN_FUSE_TICKS;
       }
 
       // Normal fuse — skip if owner has DETONATE (they control detonation manually)
-      const ownerPlayer = bomb.ownerId
-        ? engine.getComponent(bomb.ownerId, PlayerComponent)
-        : null;
-      if (ownerPlayer && ownerPlayer.canDetonate) continue;
+      // chained bombs always tick down regardless
+      if (!bomb.chained) {
+        const ownerPlayer = bomb.ownerId
+          ? engine.getComponent(bomb.ownerId, PlayerComponent)
+          : null;
+        if (ownerPlayer && ownerPlayer.canDetonate) continue;
+      }
 
       bomb.fuseTicks -= dt;
       if (bomb.fuseTicks <= 0) toDetonate.push(bombId);
@@ -104,7 +100,7 @@ export class BombSystem {
     gameState.bombs.push(entity.id);
 
     const ownerSound = engine.getComponent(ownerId, SoundComponent);
-    if (ownerSound) ownerSound.request('plant');
+    if (ownerSound) ownerSound.queue.push('plant');
 
     player.activeBombs++;
   }
@@ -219,7 +215,7 @@ export class BombSystem {
     // Play explode once for the center flame
     if (type === 'C' && soundOwnerId) {
       const sound = engine.getComponent(soundOwnerId, SoundComponent);
-      if (sound) sound.request('explode');
+      if (sound) sound.queue.push('explode');
     }
   }
 }

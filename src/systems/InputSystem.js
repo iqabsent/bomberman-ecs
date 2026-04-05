@@ -6,7 +6,7 @@ import { HealthComponent } from '../components/HealthComponent.js';
 import { GameStateComponent } from '../components/GameStateComponent.js';
 import { LevelSystem } from './LevelSystem.js';
 import { soundManager } from '../utils/SoundManager.js';
-import { STATE } from '../ecs/config.js';
+import { STATE, DEFAULT_LIVES } from '../ecs/config.js';
 
 export class InputSystem {
   constructor() {
@@ -30,8 +30,11 @@ export class InputSystem {
     if (gameState && gameState.currentState === STATE.TITLE && this.justPressed.has(KEYMAP.S)) {
       this.justPressed.clear();
       LevelSystem.removeAllLevelEntities(gameState, engine);
-      LevelSystem.resetPlayer(engine, gameState, true);
-      gameState.newGame();
+      LevelSystem.resetPlayer(engine, true);
+      gameState.currentLevel = 0;
+      gameState.lives = DEFAULT_LIVES;
+      gameState.score = 0;
+      LevelSystem.resetLevelState(gameState);
       gameState.toLoadingState();
       return;
     }
@@ -94,10 +97,11 @@ export class InputSystem {
 
         const dirChanged = velocity.vx !== prevVx || velocity.vy !== prevVy;
         if (dirChanged && moving) {
-          if      (velocity.vy < 0) anim.setAnimation('MAN_UP');
-          else if (velocity.vy > 0) anim.setAnimation('MAN_DOWN');
-          else if (velocity.vx < 0) anim.setAnimation('MAN_LEFT');
-          else if (velocity.vx > 0) anim.setAnimation('MAN_RIGHT');
+          anim.loop = true;
+          if      (velocity.vy < 0) anim.animationKey = 'MAN_UP';
+          else if (velocity.vy > 0) anim.animationKey = 'MAN_DOWN';
+          else if (velocity.vx < 0) anim.animationKey = 'MAN_LEFT';
+          else if (velocity.vx > 0) anim.animationKey = 'MAN_RIGHT';
         }
       }
 

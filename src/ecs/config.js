@@ -72,6 +72,8 @@ export const DRAG_TOLERANCE = 30;
 
 // Game Mechanics
 export const BOMB_FUSE_TIME = 9; // in frames
+export const BOMB_FUSE_TICKS = 162;   // BOMB_FUSE_TIME(9) * ticks_per_frame(18)
+export const BOMB_CHAIN_FUSE_TICKS = 9; // 0.5 frames * ticks_per_frame(18)
 export const MAX_BOMBS = 10;
 export const MAX_YIELD = 5;
 export const ONE_OVER_BLOCK_WIDTH = 1 / BLOCK_WIDTH;

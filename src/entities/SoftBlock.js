@@ -11,7 +11,7 @@ export function createSoftBlock(gridX, gridY) {
   entity.transform = new TransformComponent(gridX * BLOCK_WIDTH, gridY * BLOCK_HEIGHT);
   entity.render = new RenderComponent(null, BLOCK_WIDTH, BLOCK_HEIGHT, 1);
   entity.animation = new AnimationComponent(6);
-  entity.animation.setAnimation('SOFT_BLOCK');
+  entity.animation.animationKey = 'SOFT_BLOCK';
   entity.animation.shouldAnimate = false; // static until hit by explosion
   entity.destroyable = new DestroyableComponent();
   return entity;
