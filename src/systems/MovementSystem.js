@@ -1,0 +1,62 @@
+import { TransformComponent } from '../components/TransformComponent.js';
+import { VelocityComponent } from '../components/VelocityComponent.js';
+import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE } from '../ecs/config.js';
+import { GameStateComponent } from '../components/GameStateComponent.js';
+
+export class MovementSystem {
+  constructor() {
+    this.name = 'movement';
+    this.lastTime = null;
+  }
+
+  apply(engine, time) {
+    if (!this.lastTime) this.lastTime = time;
+    const rawDt = (time - this.lastTime) / (1000 / 60);
+    const dt = Math.min(rawDt, 3);
+    this.lastTime = time;
+
+    const gameState = engine.getSingleton(GameStateComponent);
+    if (!gameState || gameState.currentState !== STATE.PLAYING) return;
+
+    for (const [id] of engine.entities.entries()) {
+      const transform = engine.getComponent(id, TransformComponent);
+      const velocity = engine.getComponent(id, VelocityComponent);
+      if (!transform || !velocity) continue;
+
+      const movingX = velocity.vx !== 0;
+      const movingY = velocity.vy !== 0;
+      if (!movingX && !movingY) continue;
+
+      const dx = velocity.vx * dt;
+      const dy = velocity.vy * dt;
+
+      // Grid-align correction (original Bomberman style)
+      const gridX = Math.round(transform.x / BLOCK_WIDTH);
+      const gridY = Math.round(transform.y / BLOCK_HEIGHT);
+      const gridPosX = gridX * BLOCK_WIDTH;
+      const gridPosY = gridY * BLOCK_HEIGHT;
+
+      let correctionX = 0;
+      let correctionY = 0;
+
+      if (movingX && !movingY) {
+        const errY = gridPosY - transform.y;
+        if (errY !== 0) {
+          const maxCorrection = Math.min(Math.abs(errY), Math.abs(dx));
+          correctionY = Math.sign(errY) * maxCorrection;
+        }
+      } else if (movingY && !movingX) {
+        const errX = gridPosX - transform.x;
+        if (errX !== 0) {
+          const maxCorrection = Math.min(Math.abs(errX), Math.abs(dy));
+          correctionX = Math.sign(errX) * maxCorrection;
+        }
+      }
+
+      transform.x += dx + correctionX;
+      transform.y += dy + correctionY;
+      transform.gridX = Math.round(transform.x / BLOCK_WIDTH);
+      transform.gridY = Math.round(transform.y / BLOCK_HEIGHT);
+    }
+  }
+}
