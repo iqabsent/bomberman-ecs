@@ -6,14 +6,9 @@ import { GameStateComponent } from '../components/GameStateComponent.js';
 export class MovementSystem {
   constructor() {
     this.name = 'movement';
-    this.lastTime = null;
   }
 
-  apply(engine, time) {
-    if (!this.lastTime) this.lastTime = time;
-    const rawDt = (time - this.lastTime) / (1000 / 60);
-    const dt = Math.min(rawDt, 3);
-    this.lastTime = time;
+  apply(engine, dt) {
 
     const gameState = engine.getSingleton(GameStateComponent);
     if (!gameState || gameState.currentState !== STATE.PLAYING) return;

@@ -37,7 +37,7 @@ export class MapSystem {
         for (let x = 0; x < map[y].length; x++) {
           if (map[y][x] & TYPE.SOFT_BLOCK) {
             gameState.softBlockCount++;
-            const entity = createSoftBlock(x, y);
+            const entity = createSoftBlock({ gridX: x, gridY: y });
             engine.addEntity(entity);
             engine.addComponent(entity.id, entity.transform);
             engine.addComponent(entity.id, entity.render);
@@ -64,7 +64,7 @@ export class MapSystem {
       if (!gameState.powerSpawned && (!(n - 1) || Math.random() < 1 / (n - 1))) {
         gameState.powerSpawned = true;
         gameState.gameMap[gridY][gridX] = TYPE.PASSABLE | TYPE.POWER;
-        const entity = createPowerUp(gridX, gridY, levelPower);
+        const entity = createPowerUp({ gridX, gridY, type: levelPower });
         engine.addEntity(entity);
         engine.addComponent(entity.id, entity.transform);
         engine.addComponent(entity.id, entity.render);
@@ -74,7 +74,7 @@ export class MapSystem {
       } else if (!gameState.doorSpawned && (!n || Math.random() < 1 / n)) {
         gameState.doorSpawned = true;
         gameState.gameMap[gridY][gridX] = TYPE.PASSABLE | TYPE.DOOR;
-        const entity = createDoor(gridX, gridY);
+        const entity = createDoor({ gridX, gridY });
         engine.addEntity(entity);
         engine.addComponent(entity.id, entity.transform);
         engine.addComponent(entity.id, entity.render);

@@ -76,6 +76,26 @@ export const BOMB_FUSE_TICKS = 162;   // BOMB_FUSE_TIME(9) * ticks_per_frame(18)
 export const BOMB_CHAIN_FUSE_TICKS = 9; // 0.5 frames * ticks_per_frame(18)
 export const MAX_BOMBS = 10;
 export const MAX_YIELD = 5;
+
+// Animation frame timing — matches original BombObject/EnemyObject/_ticks_per_frame
+export const ANIM_TICKS_PER_FRAME_PLAYER = 6;
+export const ANIM_TICKS_PER_FRAME_SOFT_BLOCK = 6;
+export const ANIM_TICKS_PER_FRAME_BOMB = 18;
+export const ANIM_TICKS_PER_FRAME_ENEMY = 18;
+export const ANIM_TICKS_PER_FRAME_EXPLOSION = 6;
+
+// Render layer ordering (higher = drawn on top)
+export const RENDER_LAYER_SOFT_BLOCK = 1;
+export const RENDER_LAYER_DOOR = 2;
+export const RENDER_LAYER_POWER_UP = 2;
+export const RENDER_LAYER_BOMB = 3;
+export const RENDER_LAYER_EXPLOSION = 4;
+export const RENDER_LAYER_ENEMY = 5;
+export const RENDER_LAYER_PLAYER = 6;
+
+// Explosion lifetime
+export const EXPLOSION_LIFETIME_TICKS = 36; // 6 frames * 6 ticks_per_frame
+
 export const ONE_OVER_BLOCK_WIDTH = 1 / BLOCK_WIDTH;
 export const ONE_OVER_BLOCK_HEIGHT = 1 / BLOCK_HEIGHT;
 export const DIRECTIONS = [[0, -1], [1, 0], [0, 1], [-1, 0]];

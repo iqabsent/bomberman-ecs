@@ -1,7 +1,7 @@
 import { BOMB_FUSE_TICKS } from '../ecs/config.js';
 
 export class BombComponent {
-  constructor(gridX, gridY, bombYield, ownerId) {
+  constructor({ gridX, gridY, bombYield, ownerId }) {
     this.gridX = gridX;
     this.gridY = gridY;
     this.fuseTicks = BOMB_FUSE_TICKS;

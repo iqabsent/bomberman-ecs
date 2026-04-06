@@ -11,7 +11,7 @@ export class RenderSystem {
     this.runsWhenPaused = true;
   }
 
-  apply(engine /*, time */) {
+  apply(engine) {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 

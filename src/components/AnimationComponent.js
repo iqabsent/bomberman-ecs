@@ -1,5 +1,5 @@
 export class AnimationComponent {
-  constructor(ticksPerFrame = 6) {
+  constructor({ ticksPerFrame = 6 } = {}) {
     this.animationKey = null;
     this._prevAnimationKey = null;
     this.frame = 0;

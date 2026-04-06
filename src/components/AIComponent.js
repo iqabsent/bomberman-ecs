@@ -1,6 +1,6 @@
 // Enemy AI state — movement intent and decision-making parameters
 export class AIComponent {
-  constructor(stats) {
+  constructor({ stats }) {
     this.dirX = 0;
     this.dirY = 0;
     this.speed = 0;

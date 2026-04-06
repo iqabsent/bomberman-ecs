@@ -7,18 +7,17 @@ import { HealthComponent } from '../components/HealthComponent.js';
 import { CollisionComponent } from '../components/CollisionComponent.js';
 import { DestroyableComponent } from '../components/DestroyableComponent.js';
 import { SoundComponent } from '../components/SoundComponent.js';
-import { BLOCK_WIDTH, BLOCK_HEIGHT } from '../ecs/config.js';
+import { BLOCK_WIDTH, BLOCK_HEIGHT, RENDER_LAYER_PLAYER, ANIM_TICKS_PER_FRAME_PLAYER } from '../ecs/config.js';
 
 let nextId = 1;
 
 export function createPlayer() {
   const entity = { id: `player-${nextId++}` };
 
-  entity.transform   = new TransformComponent(BLOCK_WIDTH, BLOCK_HEIGHT);
-  entity.render      = new RenderComponent(null, BLOCK_WIDTH, BLOCK_HEIGHT, 6);
-  entity.velocity    = new VelocityComponent(0, 0);
-  // 6 ticks per frame — matches PlayerObject._ticks_per_frame in the original
-  entity.animation   = new AnimationComponent(6);
+  entity.transform   = new TransformComponent({ x: BLOCK_WIDTH, y: BLOCK_HEIGHT });
+  entity.render      = new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_PLAYER });
+  entity.velocity    = new VelocityComponent();
+  entity.animation   = new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_PLAYER });
   entity.animation.animationKey = 'MAN_DOWN';
   entity.player      = new PlayerComponent();
   entity.health      = new HealthComponent();

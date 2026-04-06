@@ -21,14 +21,9 @@ const DEATH_WAIT_TICKS = 90;
 export class EnemySystem {
   constructor() {
     this.name = 'enemy';
-    this.lastTime = null;
   }
 
-  apply(engine, time) {
-    if (!this.lastTime) this.lastTime = time;
-    const rawDt = (time - this.lastTime) / (1000 / 60);
-    const dt = Math.min(rawDt, 3);
-    this.lastTime = time;
+  apply(engine, dt) {
 
     const gameState = engine.getSingleton(GameStateComponent);
     if (!gameState) return;
@@ -299,7 +294,7 @@ export class EnemySystem {
   }
 
   static createEnemy(type, stats, gridX, gridY, engine) {
-    const entity = createEnemyEntity(type, stats, gridX, gridY);
+    const entity = createEnemyEntity({ type, stats, gridX, gridY });
     engine.addEntity(entity);
     engine.addComponent(entity.id, entity.transform);
     engine.addComponent(entity.id, entity.render);

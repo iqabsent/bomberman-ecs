@@ -53,6 +53,9 @@ export class GameStateComponent {
   }
 
   toTitleState()      { this._transition(STATE.TITLE); }
+  //NOTE: having LOADING_LEVEL -> LOADING_MAP -> LOADING_ENEMIES as separate, chained
+  // .. states would allow us to get rid of toLoadingState() and all other toXState()
+  // .. methods. then only _transition() breaks from pure data storage.
   toLoadingState()    { this._transition(STATE.LOADING); this.levelLoading = true; this.mapLoading = true; this.enemyLoading = true; }
   toLevelStartState() { this._transition(STATE.LEVEL_START); }
   toLevelState()      { this._transition(STATE.PLAYING); }

@@ -1,5 +1,5 @@
 export class EnemyComponent {
-  constructor(type, stats) {
+  constructor({ type, stats }) {
     this.type = type;
     this.points = stats.points;
     this.alive = true;

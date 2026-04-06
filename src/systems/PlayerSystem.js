@@ -11,14 +11,9 @@ import { SoundComponent } from '../components/SoundComponent.js';
 export class PlayerSystem {
   constructor() {
     this.name = 'player';
-    this.lastTime = null;
   }
 
-  apply(engine, time) {
-    if (!this.lastTime) this.lastTime = time;
-    const rawDt = (time - this.lastTime) / (1000 / 60);
-    const dt = Math.min(rawDt, 3);
-    this.lastTime = time;
+  apply(engine, dt) {
 
     const gameState = engine.getSingleton(GameStateComponent);
     if (!gameState) return; // TODO: is this needed?

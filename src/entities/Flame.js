@@ -2,22 +2,21 @@ import { TransformComponent } from '../components/TransformComponent.js';
 import { RenderComponent } from '../components/RenderComponent.js';
 import { AnimationComponent } from '../components/AnimationComponent.js';
 import { FlameComponent } from '../components/FlameComponent.js';
-import { BLOCK_WIDTH, BLOCK_HEIGHT } from '../ecs/config.js';
-
-// 6 frames total (4-frame symmetric expansion) × 6 ticks = 36 ticks lifetime
-const EXPLO_LIFE_TICKS = 36;
-const EXPLO_ANIM_TICKS_PER_FRAME = 6;
+import {
+  BLOCK_WIDTH, BLOCK_HEIGHT,
+  RENDER_LAYER_EXPLOSION, ANIM_TICKS_PER_FRAME_EXPLOSION, EXPLOSION_LIFETIME_TICKS
+} from '../ecs/config.js';
 
 let nextId = 1;
 
-export function createFlame(gridX, gridY, type) {
+export function createFlame({ gridX, gridY, type }) {
   const entity = { id: `flame-${nextId++}` };
-  entity.transform = new TransformComponent(gridX * BLOCK_WIDTH, gridY * BLOCK_HEIGHT);
-  entity.render = new RenderComponent(null, BLOCK_WIDTH, BLOCK_HEIGHT, 4);
-  entity.animation = new AnimationComponent(EXPLO_ANIM_TICKS_PER_FRAME);
+  entity.transform = new TransformComponent({ x: gridX * BLOCK_WIDTH, y: gridY * BLOCK_HEIGHT });
+  entity.render = new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_EXPLOSION });
+  entity.animation = new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_EXPLOSION });
   entity.animation.animationKey = 'EXPLO_' + type;
   entity.animation.loop = false; // non-looping, plays once
   entity.animation.shouldAnimate = true;
-  entity.flame = new FlameComponent(gridX, gridY, type, EXPLO_LIFE_TICKS);
+  entity.flame = new FlameComponent({ gridX, gridY, type, fuseTicks: EXPLOSION_LIFETIME_TICKS });
   return entity;
 }

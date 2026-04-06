@@ -4,14 +4,9 @@ import { GameStateComponent } from '../components/GameStateComponent.js';
 export class TimerSystem {
   constructor() {
     this.name = 'timer';
-    this.lastTime = null;
   }
 
-  apply(engine, time) {
-    if (!this.lastTime) this.lastTime = time;
-    const rawDt = (time - this.lastTime) / (1000 / 60);
-    const dt = Math.min(rawDt, 3);
-    this.lastTime = time;
+  apply(engine, dt) {
 
     const gameState = engine.getSingleton(GameStateComponent);
     if (!gameState) return;

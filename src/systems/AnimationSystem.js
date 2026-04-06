@@ -5,14 +5,9 @@ import { assetManager } from '../utils/AssetManager.js';
 export class AnimationSystem {
   constructor() {
     this.name = 'animation';
-    this.lastTime = null;
   }
 
-  apply(engine, time) {
-    if (!this.lastTime) this.lastTime = time;
-    const rawDt = (time - this.lastTime) / (1000 / 60);
-    const dt = Math.min(rawDt, 3);
-    this.lastTime = time;
+  apply(engine, dt) {
 
     for (const [id] of engine.entities.entries()) {
       const anim = engine.getComponent(id, AnimationComponent);

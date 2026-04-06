@@ -52,9 +52,13 @@ export class Engine {
   }
 
   tick(time) {
+    const rawDt = this._lastTime ? (time - this._lastTime) / (1000 / 60) : 0;
+    const dt = Math.min(rawDt, 3);
+    this._lastTime = time;
+
     for (const system of this.systems.values()) {
       if (this.paused && !system.runsWhenPaused) continue;
-      system.apply(this, time);
+      system.apply(this, dt);
     }
     if (this.running) requestAnimationFrame(this.tick);
   }

@@ -8,7 +8,7 @@ export class CameraSystem {
     this.name = 'camera';
   }
 
-  apply(engine /*, time */) {
+  apply(engine) {
     const gameState = engine.getSingleton(GameStateComponent);
     if (!gameState) return;
 

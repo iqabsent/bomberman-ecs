@@ -12,14 +12,9 @@ import { SoundComponent } from '../components/SoundComponent.js';
 export class BombSystem {
   constructor() {
     this.name = 'bomb';
-    this.lastTime = null;
   }
 
-  apply(engine, time) {
-    if (!this.lastTime) this.lastTime = time;
-    const rawDt = (time - this.lastTime) / (1000 / 60);
-    const dt = Math.min(rawDt, 3);
-    this.lastTime = time;
+  apply(engine, dt) {
 
     const gameState = engine.getSingleton(GameStateComponent);
     if (!gameState) return;
@@ -89,7 +84,7 @@ export class BombSystem {
 
     gameState.gameMap[gridY][gridX] |= TYPE.BOMB;
 
-    const entity = createBomb(gridX, gridY, player.bombYield, ownerId);
+    const entity = createBomb({ gridX, gridY, bombYield: player.bombYield, ownerId });
     engine.addEntity(entity);
     engine.addComponent(entity.id, entity.transform);
     engine.addComponent(entity.id, entity.render);
@@ -204,7 +199,7 @@ export class BombSystem {
       gameState.gameMap[gridY][gridX] |= TYPE.EXPLOSION;
     }
 
-    const entity = createFlame(gridX, gridY, type);
+    const entity = createFlame({ gridX, gridY, type });
     engine.addEntity(entity);
     engine.addComponent(entity.id, entity.transform);
     engine.addComponent(entity.id, entity.render);

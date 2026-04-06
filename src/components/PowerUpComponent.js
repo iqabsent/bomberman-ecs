@@ -1,5 +1,5 @@
 export class PowerUpComponent {
-  constructor(type) {
+  constructor({ type }) {
     this.type = type;
   }
 }
