@@ -11,9 +11,7 @@ export function createBomb({ gridX, gridY, bombYield, ownerId }) {
 
   entity.transform  = new TransformComponent({ x: gridX * BLOCK_WIDTH, y: gridY * BLOCK_HEIGHT });
   entity.render     = new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_BOMB });
-  entity.animation  = new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_BOMB });
-  entity.animation.animationKey = 'BOMB';
-  entity.animation.shouldAnimate = true;
+  entity.animation  = new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_BOMB, animationKey: 'BOMB', shouldAnimate: true });
   entity.bomb        = new BombComponent({ gridX, gridY, bombYield, ownerId });
   entity.destroyable = new DestroyableComponent();
   entity.sound       = new SoundComponent();

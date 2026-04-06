@@ -17,8 +17,7 @@ export function createPlayer() {
   entity.transform   = new TransformComponent({ x: BLOCK_WIDTH, y: BLOCK_HEIGHT });
   entity.render      = new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_PLAYER });
   entity.velocity    = new VelocityComponent();
-  entity.animation   = new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_PLAYER });
-  entity.animation.animationKey = 'MAN_DOWN';
+  entity.animation   = new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_PLAYER, animationKey: 'MAN_DOWN' });
   entity.player      = new PlayerComponent();
   entity.health      = new HealthComponent();
   entity.collision   = new CollisionComponent();

@@ -14,9 +14,7 @@ export function createEnemy({ type, stats, gridX, gridY }) {
 
   entity.transform   = new TransformComponent({ x: gridX * BLOCK_WIDTH, y: gridY * BLOCK_HEIGHT });
   entity.render      = new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_ENEMY });
-  entity.animation   = new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_ENEMY });
-  entity.animation.animationKey = type + '_LD';
-  entity.animation.shouldAnimate = true;
+  entity.animation   = new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_ENEMY, animationKey: type + '_LD', shouldAnimate: true });
   entity.ai          = new AIComponent({ stats });
   entity.enemy       = new EnemyComponent({ type, stats });
   entity.health      = new HealthComponent();

@@ -31,7 +31,6 @@ export const KEY = {
   DOWN: 40,
   LEFT: 37,
   RIGHT: 39,
-  W: 87,
   S: 83,
   D: 68,
   M: 77,
