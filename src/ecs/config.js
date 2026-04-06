@@ -38,6 +38,12 @@ export const KEY = {
   ENTER: 13
 };
 
+export const SPAWN = {
+  GAME_SPAWN: 'GAME_SPAWN',   // new game or restart from title
+  LEVEL_SPAWN: 'LEVEL_SPAWN', // advancing to a new level
+  RESPAWN: 'RESPAWN'          // retry same level after death
+};
+
 export const POWER = {
   FLAME: 0,
   BOMB: 1,

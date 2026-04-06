@@ -1,4 +1,4 @@
-import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER } from '../ecs/config.js';
+import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPAWN, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER } from '../ecs/config.js';
 import { GameStateComponent } from '../components/GameStateComponent.js';
 import { TransformComponent } from '../components/TransformComponent.js';
 import { VelocityComponent } from '../components/VelocityComponent.js';
@@ -14,9 +14,23 @@ export class PlayerSystem {
   }
 
   apply(engine, dt) {
-
     const gameState = engine.getSingleton(GameStateComponent);
-    if (!gameState) return; // TODO: is this needed?
+    if (!gameState) return;
+
+    // Process pending spawns regardless of game state — may be set during LOADING or LEVEL_START
+    for (const [id] of engine.entities.entries()) {
+      const player = engine.getComponent(id, PlayerComponent);
+      if (!player || !player.pendingSpawn) continue;
+
+      const transform = engine.getComponent(id, TransformComponent);
+      const velocity  = engine.getComponent(id, VelocityComponent);
+      const anim      = engine.getComponent(id, AnimationComponent);
+      const health    = engine.getComponent(id, HealthComponent);
+      PlayerSystem.spawnPlayer(player, transform, velocity, anim, health);
+      if (player.pendingSpawn === SPAWN.GAME_SPAWN) PlayerSystem.resetPlayerStats(player);
+      player.pendingSpawn = null;
+    }
+
     if (gameState.currentState === STATE.LEVEL_CLEAR || gameState.currentState === STATE.PLAYER_DIED) {
       for (const [id] of engine.entities.entries()) {
         const player = engine.getComponent(id, PlayerComponent);
@@ -32,11 +46,6 @@ export class PlayerSystem {
       for (const [id] of engine.entities.entries()) {
         const player = engine.getComponent(id, PlayerComponent);
         if (!player) continue;
-
-        if (player.needsReset) {
-          player.needsReset = false;
-          PlayerSystem.resetPlayerStats(player);
-        }
 
         if (player.pendingPowerup) {
           PlayerSystem.applyPowerup(player, player.pendingPowerup);
@@ -77,16 +86,15 @@ export class PlayerSystem {
           continue;
         }
 
-        // Still playing — wait
+        // Still playing — wait for death animation to complete
         if (anim.shouldAnimate) continue;
 
         // Animation complete — handle death
         gameState.lives--;
         if (gameState.lives > 0) {
-          // Zero velocity so player doesn't slide during miss screen
           velocity.vx = 0;
           velocity.vy = 0;
-          // Leave health.isDying = true — LevelSystem clears it when LEVEL_START begins
+          // Leave health.isDying = true — LevelSystem flags RESPAWN when LEVEL_START begins
           gameState.toPlayerDiedState();
         } else {
           // Game over — leave isDying true so input/collision stay disabled
@@ -94,6 +102,21 @@ export class PlayerSystem {
         }
       }
     }
+  }
+
+  static spawnPlayer(player, transform, velocity, anim, health) {
+    if (!transform || !velocity || !anim) return;
+    transform.x = BLOCK_WIDTH;
+    transform.y = BLOCK_HEIGHT;
+    transform.gridX = 1;
+    transform.gridY = 1;
+    velocity.vx = 0;
+    velocity.vy = 0;
+    player.activeBombs = 0;
+    if (health) { health.isDying = false; health.deathAnimStarted = false; }
+    anim.animationKey = 'MAN_DOWN';
+    anim.loop = true;
+    anim.shouldAnimate = false;
   }
 
   static applyPowerup(player, type) {

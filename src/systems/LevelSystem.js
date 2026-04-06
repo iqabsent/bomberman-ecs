@@ -1,8 +1,5 @@
-import { STATE, BLOCK_WIDTH, BLOCK_HEIGHT, LEVEL, DEFAULT_LIVES, LEVEL_TIME } from '../ecs/config.js';
+import { STATE, SPAWN, LEVEL, DEFAULT_LIVES, LEVEL_TIME } from '../ecs/config.js';
 import { GameStateComponent } from '../components/GameStateComponent.js';
-import { TransformComponent } from '../components/TransformComponent.js';
-import { VelocityComponent } from '../components/VelocityComponent.js';
-import { AnimationComponent } from '../components/AnimationComponent.js';
 import { PlayerComponent } from '../components/PlayerComponent.js';
 import { HealthComponent } from '../components/HealthComponent.js';
 
@@ -21,7 +18,11 @@ export class LevelSystem {
 
         // Remove all old entities before MapSystem/EnemySystem spawn new ones
         LevelSystem.removeAllLevelEntities(gameState, engine);
-        LevelSystem.resetPlayer(engine, gameState.previousState === STATE.TITLE);
+        const spawnType = gameState.previousState === STATE.TITLE ? SPAWN.GAME_SPAWN : SPAWN.LEVEL_SPAWN;
+        for (const [id] of engine.entities.entries()) {
+          const player = engine.getComponent(id, PlayerComponent);
+          if (player) player.pendingSpawn = spawnType;
+        }
 
         // Reset game state based on where we came from
         if (gameState.previousState === STATE.LEVEL_CLEAR) {
@@ -47,30 +48,12 @@ export class LevelSystem {
     }
 
     if (gameState.currentState === STATE.LEVEL_START) {
-      // Respawn player if arriving from PLAYER_DIED (health.isDying still set)
+      // Flag dying players for respawn — arriving from PLAYER_DIED with health.isDying still set
       for (const [id] of engine.entities.entries()) {
         const player = engine.getComponent(id, PlayerComponent);
         if (!player) continue;
-
-        const health    = engine.getComponent(id, HealthComponent);
-        const transform = engine.getComponent(id, TransformComponent);
-        const velocity  = engine.getComponent(id, VelocityComponent);
-        const anim      = engine.getComponent(id, AnimationComponent);
-        if (!health || !health.isDying) continue;
-        if (!transform || !velocity || !anim) continue;
-
-        transform.x = BLOCK_WIDTH;
-        transform.y = BLOCK_HEIGHT;
-        transform.gridX = 1;
-        transform.gridY = 1;
-        velocity.vx = 0;
-        velocity.vy = 0;
-        player.activeBombs = 0;
-        health.isDying = false;
-        health.deathAnimStarted = false;
-        anim.animationKey = 'MAN_DOWN';
-        anim.loop = true;
-        anim.shouldAnimate = false;
+        const health = engine.getComponent(id, HealthComponent);
+        if (health && health.isDying) player.pendingSpawn = SPAWN.RESPAWN;
       }
       return;
     }
@@ -106,32 +89,4 @@ export class LevelSystem {
     if (gameState.door) engine.removeEntity(gameState.door);
   }
 
-  // TODO: player reset logic should belong to PlayerSystem, not LevelSystem
-  static resetPlayer(engine, resetPowerups = false) {
-    for (const [id] of engine.entities.entries()) {
-      const player = engine.getComponent(id, PlayerComponent);
-      if (!player) continue;
-
-      const transform = engine.getComponent(id, TransformComponent);
-      const velocity  = engine.getComponent(id, VelocityComponent);
-      const anim      = engine.getComponent(id, AnimationComponent);
-      const health    = engine.getComponent(id, HealthComponent);
-      if (!transform || !velocity || !anim) continue;
-
-      transform.x = BLOCK_WIDTH;
-      transform.y = BLOCK_HEIGHT;
-      transform.gridX = 1;
-      transform.gridY = 1;
-      velocity.vx = 0;
-      velocity.vy = 0;
-      if (resetPowerups) {
-        player.needsReset = true;
-      } else {
-        player.activeBombs = 0;
-      }
-      if (health) { health.isDying = false; health.deathAnimStarted = false; }
-      anim.animationKey = 'MAN_DOWN';
-      anim.shouldAnimate = false;
-    }
-  }
 }

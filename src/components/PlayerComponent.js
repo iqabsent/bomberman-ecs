@@ -13,7 +13,7 @@ export class PlayerComponent {
     this.canPassWall = false;
     this.fireproof = false;
     this.invincibilityTimer = 0;
-    this.needsReset = false;    // set true to signal PlayerSystem to reset all power-up stats
+    this.pendingSpawn = null;   // set to a SPAWN value; PlayerSystem handles the reset and clears it
     this.pendingPowerup = null; // set by CollectibleSystem; applied and cleared by PlayerSystem
   }
 }

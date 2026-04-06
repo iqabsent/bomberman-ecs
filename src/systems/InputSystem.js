@@ -29,7 +29,6 @@ export class InputSystem {
 
     if (gameState && gameState.currentState === STATE.TITLE && this.justPressed.has(KEYMAP.S)) {
       LevelSystem.removeAllLevelEntities(gameState, engine);
-      LevelSystem.resetPlayer(engine, true);
       gameState.currentLevel = 0;
       gameState.lives = DEFAULT_LIVES;
       gameState.score = 0;
