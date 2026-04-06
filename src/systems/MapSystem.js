@@ -42,6 +42,7 @@ export class MapSystem {
             engine.addComponent(entity.id, entity.transform);
             engine.addComponent(entity.id, entity.render);
             engine.addComponent(entity.id, entity.animation);
+            engine.addComponent(entity.id, entity.gridPlacement);
             engine.addComponent(entity.id, entity.destroyable);
             gameState.softBlocks.push(entity.id);
           }
@@ -69,6 +70,7 @@ export class MapSystem {
         engine.addComponent(entity.id, entity.transform);
         engine.addComponent(entity.id, entity.render);
         engine.addComponent(entity.id, entity.collectible);
+        engine.addComponent(entity.id, entity.gridPlacement);
         engine.addComponent(entity.id, entity.destroyable);
         gameState.powerups.push(entity.id);
       } else if (!gameState.doorSpawned && (!n || Math.random() < 1 / n)) {
@@ -78,6 +80,7 @@ export class MapSystem {
         engine.addEntity(entity);
         engine.addComponent(entity.id, entity.transform);
         engine.addComponent(entity.id, entity.render);
+        engine.addComponent(entity.id, entity.gridPlacement);
         engine.addComponent(entity.id, entity.destroyable);
         gameState.door = entity.id;
       } else {

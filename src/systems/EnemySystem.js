@@ -11,7 +11,7 @@ import { AIComponent } from '../components/AIComponent.js';
 import { HealthComponent } from '../components/HealthComponent.js';
 import { PlayerComponent } from '../components/PlayerComponent.js';
 import { createEnemy as createEnemyEntity } from '../entities/Enemy.js';
-import { FlameComponent } from '../components/FlameComponent.js';
+import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
 import { SoundComponent } from '../components/SoundComponent.js';
 
 // Ticks before death animation starts — original: queue('startDeathAnimation', 5) * 18
@@ -52,8 +52,8 @@ export class EnemySystem {
       if (gameState.pendingEnemySpawnDoor) {
         const { gridX, gridY, enemyType } = gameState.pendingEnemySpawnDoor;
         const flamesOnCell = gameState.flames.some(id => {
-          const f = engine.getComponent(id, FlameComponent);
-          return f && f.gridX === gridX && f.gridY === gridY;
+          const gp = engine.getComponent(id, GridPlacementComponent);
+          return gp && gp.gridX === gridX && gp.gridY === gridY;
         });
         if (!flamesOnCell) {
           const stats = ENEMY[enemyType];
@@ -83,28 +83,28 @@ export class EnemySystem {
       // Gather player grid positions for collision checks
       const playerCells = [];
       for (const [id] of engine.entities.entries()) {
-        const playerInput = engine.getComponent(id, PlayerComponent);
-        if (!playerInput) continue;
-        const transform = engine.getComponent(id, TransformComponent);
-        const health    = engine.getComponent(id, HealthComponent);
-        const player    = engine.getComponent(id, PlayerComponent);
-        if (transform && health) {
-          playerCells.push({ gridX: transform.gridX, gridY: transform.gridY, health, player });
+        if (!engine.getComponent(id, PlayerComponent)) continue;
+        const gridPlacement = engine.getComponent(id, GridPlacementComponent);
+        const health        = engine.getComponent(id, HealthComponent);
+        const player        = engine.getComponent(id, PlayerComponent);
+        if (gridPlacement && health) {
+          playerCells.push({ gridX: gridPlacement.gridX, gridY: gridPlacement.gridY, health, player });
         }
       }
 
       for (let i = gameState.enemies.length - 1; i >= 0; i--) {
-        const entityId = gameState.enemies[i];
-        const enemy    = engine.getComponent(entityId, EnemyComponent);
+        const entityId     = gameState.enemies[i];
+        const enemy        = engine.getComponent(entityId, EnemyComponent);
         if (!enemy) continue;
 
-        const transform = engine.getComponent(entityId, TransformComponent);
-        const ai        = engine.getComponent(entityId, AIComponent);
-        const anim      = engine.getComponent(entityId, AnimationComponent);
-        const render    = engine.getComponent(entityId, RenderComponent);
+        const transform     = engine.getComponent(entityId, TransformComponent);
+        const gridPlacement = engine.getComponent(entityId, GridPlacementComponent);
+        const ai            = engine.getComponent(entityId, AIComponent);
+        const anim          = engine.getComponent(entityId, AnimationComponent);
+        const render        = engine.getComponent(entityId, RenderComponent);
 
         // Check explosion collision
-        const mapCell = gameState.gameMap[transform.gridY] && gameState.gameMap[transform.gridY][transform.gridX];
+        const mapCell = gameState.gameMap[gridPlacement.gridY] && gameState.gameMap[gridPlacement.gridY][gridPlacement.gridX];
         if (mapCell & TYPE.EXPLOSION) {
           this.killEnemy(enemy, anim, render, gameState, i, engine, entityId);
           continue;
@@ -112,7 +112,7 @@ export class EnemySystem {
 
         // Check player collision
         for (const pc of playerCells) {
-          if (pc.gridX === transform.gridX && pc.gridY === transform.gridY) {
+          if (pc.gridX === gridPlacement.gridX && pc.gridY === gridPlacement.gridY) {
             if (!(pc.player && pc.player.invincibilityTimer) && !pc.health.isDying) {
               pc.health.isDying = true;
             }
@@ -120,38 +120,38 @@ export class EnemySystem {
         }
 
         // AI — decide direction
-        this.updateAI(enemy, ai, transform, gameState, dt, anim);
+        this.updateAI(enemy, ai, transform, gridPlacement, gameState, dt, anim);
 
         // Move
-        this.moveEnemy(ai, transform, gameState, dt);
+        this.moveEnemy(ai, transform, gridPlacement, gameState, dt);
       }
     }
   }
 
-  updateAI(enemy, ai, transform, gameState, dt, anim) {
+  updateAI(enemy, ai, transform, gridPlacement, gameState, dt, anim) {
     if (ai.recentlyActed) {
       ai.debounceLeft -= dt;
       if (ai.debounceLeft <= 0) ai.recentlyActed = false;
     }
 
-    const cellX = transform.gridX * BLOCK_WIDTH;
-    const cellY = transform.gridY * BLOCK_HEIGHT;
+    const cellX = gridPlacement.gridX * BLOCK_WIDTH;
+    const cellY = gridPlacement.gridY * BLOCK_HEIGHT;
     const aligned = Math.abs((cellX - transform.x) + (cellY - transform.y)) <= ai.speed;
 
     const shouldAct = !ai.speed
       || (!ai.recentlyActed && aligned && Math.random() < ai.actionFrequency);
 
     if (shouldAct) {
-      this.pickDirection(enemy, ai, transform, gameState, anim);
+      this.pickDirection(enemy, ai, gridPlacement, gameState, anim);
       ai.recentlyActed = true;
       ai.debounceLeft = ai.framesBetweenActions;
     }
   }
 
-  pickDirection(enemy, ai, transform, gameState, anim) {
+  pickDirection(enemy, ai, gridPlacement, gameState, anim) {
     const options = [];
     for (const [dx, dy] of DIRECTIONS) {
-      if (!this.isCellBlocked(transform.gridX + dx, transform.gridY + dy, ai, gameState)) {
+      if (!this.isCellBlocked(gridPlacement.gridX + dx, gridPlacement.gridY + dy, ai, gameState)) {
         options.push([dx, dy]);
       }
     }
@@ -172,23 +172,23 @@ export class EnemySystem {
     anim.loop = true;
   }
 
-  moveEnemy(ai, transform, gameState, dt) {
+  moveEnemy(ai, transform, gridPlacement, gameState, dt) {
     if (!ai.dirX && !ai.dirY) return;
 
     const delta = ai.speed * dt;
-    const cellX = transform.gridX * BLOCK_WIDTH;
-    const cellY = transform.gridY * BLOCK_HEIGHT;
+    const cellX = gridPlacement.gridX * BLOCK_WIDTH;
+    const cellY = gridPlacement.gridY * BLOCK_HEIGHT;
 
     if (ai.dirX !== 0) {
       const errY = cellY - transform.y;
       const corrY = errY !== 0 ? Math.sign(errY) * Math.min(Math.abs(errY), delta) : 0;
 
-      const tgx = transform.gridX + ai.dirX;
-      if (this.isCellBlocked(tgx, transform.gridY, ai, gameState)) {
+      const tgx = gridPlacement.gridX + ai.dirX;
+      if (this.isCellBlocked(tgx, gridPlacement.gridY, ai, gameState)) {
         const targetCellX = tgx * BLOCK_WIDTH;
         if (Math.abs(transform.x + ai.dirX * delta - targetCellX) < BLOCK_WIDTH) {
           transform.x = cellX;
-          transform.gridX = Math.round(transform.x / BLOCK_WIDTH);
+          gridPlacement.gridX = Math.round(transform.x / BLOCK_WIDTH);
           ai.dirX = 0;
           ai.speed = 0;
           return;
@@ -201,12 +201,12 @@ export class EnemySystem {
       const errX = cellX - transform.x;
       const corrX = errX !== 0 ? Math.sign(errX) * Math.min(Math.abs(errX), delta) : 0;
 
-      const tgy = transform.gridY + ai.dirY;
-      if (this.isCellBlocked(transform.gridX, tgy, ai, gameState)) {
+      const tgy = gridPlacement.gridY + ai.dirY;
+      if (this.isCellBlocked(gridPlacement.gridX, tgy, ai, gameState)) {
         const targetCellY = tgy * BLOCK_HEIGHT;
         if (Math.abs(transform.y + ai.dirY * delta - targetCellY) < BLOCK_HEIGHT) {
           transform.y = cellY;
-          transform.gridY = Math.round(transform.y / BLOCK_HEIGHT);
+          gridPlacement.gridY = Math.round(transform.y / BLOCK_HEIGHT);
           ai.dirY = 0;
           ai.speed = 0;
           return;
@@ -216,8 +216,8 @@ export class EnemySystem {
       transform.x += corrX;
     }
 
-    transform.gridX = Math.round(transform.x / BLOCK_WIDTH);
-    transform.gridY = Math.round(transform.y / BLOCK_HEIGHT);
+    gridPlacement.gridX = Math.round(transform.x / BLOCK_WIDTH);
+    gridPlacement.gridY = Math.round(transform.y / BLOCK_HEIGHT);
   }
 
   isCellBlocked(gx, gy, ai, gameState) {
@@ -305,6 +305,7 @@ export class EnemySystem {
     engine.addComponent(entity.id, entity.ai);
     engine.addComponent(entity.id, entity.enemy);
     engine.addComponent(entity.id, entity.health);
+    engine.addComponent(entity.id, entity.gridPlacement);
     engine.addComponent(entity.id, entity.destroyable);
     return entity.id;
   }

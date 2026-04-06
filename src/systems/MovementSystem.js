@@ -1,5 +1,6 @@
 import { TransformComponent } from '../components/TransformComponent.js';
 import { VelocityComponent } from '../components/VelocityComponent.js';
+import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
 import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE } from '../ecs/config.js';
 import { GameStateComponent } from '../components/GameStateComponent.js';
 
@@ -14,9 +15,10 @@ export class MovementSystem {
     if (!gameState || gameState.currentState !== STATE.PLAYING) return;
 
     for (const [id] of engine.entities.entries()) {
-      const transform = engine.getComponent(id, TransformComponent);
-      const velocity = engine.getComponent(id, VelocityComponent);
-      if (!transform || !velocity) continue;
+      const transform     = engine.getComponent(id, TransformComponent);
+      const velocity      = engine.getComponent(id, VelocityComponent);
+      const gridPlacement = engine.getComponent(id, GridPlacementComponent);
+      if (!transform || !velocity || !gridPlacement) continue;
 
       const movingX = velocity.vx !== 0;
       const movingY = velocity.vy !== 0;
@@ -50,8 +52,8 @@ export class MovementSystem {
 
       transform.x += dx + correctionX;
       transform.y += dy + correctionY;
-      transform.gridX = Math.round(transform.x / BLOCK_WIDTH);
-      transform.gridY = Math.round(transform.y / BLOCK_HEIGHT);
+      gridPlacement.gridX = Math.round(transform.x / BLOCK_WIDTH);
+      gridPlacement.gridY = Math.round(transform.y / BLOCK_HEIGHT);
     }
   }
 }

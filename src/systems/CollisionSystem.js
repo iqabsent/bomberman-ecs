@@ -5,6 +5,7 @@ import { CollisionComponent } from '../components/CollisionComponent.js';
 import { HealthComponent } from '../components/HealthComponent.js';
 import { PlayerComponent } from '../components/PlayerComponent.js';
 import { CollectibleComponent } from '../components/CollectibleComponent.js';
+import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
 import { GameStateComponent } from '../components/GameStateComponent.js';
 
 export class CollisionSystem {
@@ -22,10 +23,11 @@ export class CollisionSystem {
       const collision = engine.getComponent(id, CollisionComponent);
       if (!collision) continue;
 
-      const transform = engine.getComponent(id, TransformComponent);
-      const velocity  = engine.getComponent(id, VelocityComponent);
-      const health    = engine.getComponent(id, HealthComponent);
-      if (!transform || !velocity) continue;
+      const transform    = engine.getComponent(id, TransformComponent);
+      const velocity     = engine.getComponent(id, VelocityComponent);
+      const health       = engine.getComponent(id, HealthComponent);
+      const gridPlacement = engine.getComponent(id, GridPlacementComponent);
+      if (!transform || !velocity || !gridPlacement) continue;
       if (health && health.isDying) continue;
 
       const dirX = Math.sign(velocity.vx);
@@ -44,7 +46,7 @@ export class CollisionSystem {
             if (Math.abs(transform.x + velocity.vx - targetCellX) < BLOCK_WIDTH) {
               velocity.vx = 0;
               transform.x = gridX * BLOCK_WIDTH;
-              transform.gridX = gridX;
+              gridPlacement.gridX = gridX;
             }
           }
         }
@@ -56,7 +58,7 @@ export class CollisionSystem {
             if (Math.abs(transform.y + velocity.vy - targetCellY) < BLOCK_HEIGHT) {
               velocity.vy = 0;
               transform.y = gridY * BLOCK_HEIGHT;
-              transform.gridY = gridY;
+              gridPlacement.gridY = gridY;
             }
           }
         }
@@ -69,8 +71,8 @@ export class CollisionSystem {
       // Mark overlapping collectible for pickup — CollectibleSystem handles the rest
       if (cell & TYPE.POWER) {
         const entityId = gameState.powerups.find(pid => {
-          const t = engine.getComponent(pid, TransformComponent);
-          return t && t.gridX === gridX && t.gridY === gridY;
+          const gp = engine.getComponent(pid, GridPlacementComponent);
+          return gp && gp.gridX === gridX && gp.gridY === gridY;
         });
         if (entityId) {
           const collectible = engine.getComponent(entityId, CollectibleComponent);

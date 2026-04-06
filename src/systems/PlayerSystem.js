@@ -1,4 +1,5 @@
 import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPAWN, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER } from '../ecs/config.js';
+import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
 import { GameStateComponent } from '../components/GameStateComponent.js';
 import { TransformComponent } from '../components/TransformComponent.js';
 import { VelocityComponent } from '../components/VelocityComponent.js';
@@ -22,11 +23,12 @@ export class PlayerSystem {
       const player = engine.getComponent(id, PlayerComponent);
       if (!player || !player.pendingSpawn) continue;
 
-      const transform = engine.getComponent(id, TransformComponent);
-      const velocity  = engine.getComponent(id, VelocityComponent);
-      const anim      = engine.getComponent(id, AnimationComponent);
-      const health    = engine.getComponent(id, HealthComponent);
-      PlayerSystem.spawnPlayer(player, transform, velocity, anim, health);
+      const transform     = engine.getComponent(id, TransformComponent);
+      const velocity      = engine.getComponent(id, VelocityComponent);
+      const anim          = engine.getComponent(id, AnimationComponent);
+      const health        = engine.getComponent(id, HealthComponent);
+      const gridPlacement = engine.getComponent(id, GridPlacementComponent);
+      PlayerSystem.spawnPlayer(player, transform, velocity, anim, health, gridPlacement);
       if (player.pendingSpawn === SPAWN.GAME_SPAWN) PlayerSystem.resetPlayerStats(player);
       player.pendingSpawn = null;
     }
@@ -104,12 +106,11 @@ export class PlayerSystem {
     }
   }
 
-  static spawnPlayer(player, transform, velocity, anim, health) {
+  static spawnPlayer(player, transform, velocity, anim, health, gridPlacement) {
     if (!transform || !velocity || !anim) return;
     transform.x = BLOCK_WIDTH;
     transform.y = BLOCK_HEIGHT;
-    transform.gridX = 1;
-    transform.gridY = 1;
+    if (gridPlacement) { gridPlacement.gridX = 1; gridPlacement.gridY = 1; }
     velocity.vx = 0;
     velocity.vy = 0;
     player.activeBombs = 0;

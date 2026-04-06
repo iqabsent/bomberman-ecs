@@ -7,6 +7,7 @@ import { HealthComponent } from '../components/HealthComponent.js';
 import { CollisionComponent } from '../components/CollisionComponent.js';
 import { DestroyableComponent } from '../components/DestroyableComponent.js';
 import { SoundComponent } from '../components/SoundComponent.js';
+import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
 import { BLOCK_WIDTH, BLOCK_HEIGHT, RENDER_LAYER_PLAYER, ANIM_TICKS_PER_FRAME_PLAYER } from '../ecs/config.js';
 
 let nextId = 1;
@@ -20,6 +21,7 @@ export function createPlayer() {
   entity.animation   = new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_PLAYER, animationKey: 'MAN_DOWN' });
   entity.player      = new PlayerComponent();
   entity.health      = new HealthComponent();
+  entity.gridPlacement = new GridPlacementComponent({ gridX: 1, gridY: 1 });
   entity.collision   = new CollisionComponent();
   entity.destroyable = new DestroyableComponent();
   entity.sound       = new SoundComponent();

@@ -72,6 +72,7 @@ const init = async () => {
   engine.addComponent(player.id, player.animation);
   engine.addComponent(player.id, player.player);
   engine.addComponent(player.id, player.health);
+  engine.addComponent(player.id, player.gridPlacement);
   engine.addComponent(player.id, player.collision);
   engine.addComponent(player.id, player.destroyable);
   engine.addComponent(player.id, player.sound);

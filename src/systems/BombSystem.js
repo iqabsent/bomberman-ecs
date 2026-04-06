@@ -1,4 +1,6 @@
 import { BLOCK_WIDTH, BLOCK_HEIGHT, TYPE, DIRECTIONS, BOMB_CHAIN_FUSE_TICKS } from '../ecs/config.js';
+import { FuseComponent } from '../components/FuseComponent.js';
+import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
 import { GameStateComponent } from '../components/GameStateComponent.js';
 import { TransformComponent } from '../components/TransformComponent.js';
 import { PlayerComponent } from '../components/PlayerComponent.js';
@@ -31,13 +33,14 @@ export class BombSystem {
     const toDetonate = [];
     for (const bombId of gameState.bombs) {
       const bomb        = engine.getComponent(bombId, BombComponent);
+      const fuse        = engine.getComponent(bombId, FuseComponent);
       const destroyable = engine.getComponent(bombId, DestroyableComponent);
-      if (!bomb) continue;
+      if (!bomb || !fuse) continue;
 
       // Chain hit — shorten fuse and mark as chained so canDetonate can't block it
       if (destroyable && destroyable.burning && !bomb.chained) {
         bomb.chained = true;
-        bomb.fuseTicks = BOMB_CHAIN_FUSE_TICKS;
+        fuse.ticks = BOMB_CHAIN_FUSE_TICKS;
       }
 
       // Normal fuse — skip if owner has DETONATE (they control detonation manually)
@@ -49,8 +52,8 @@ export class BombSystem {
         if (ownerPlayer && ownerPlayer.canDetonate) continue;
       }
 
-      bomb.fuseTicks -= dt;
-      if (bomb.fuseTicks <= 0) toDetonate.push(bombId);
+      fuse.ticks -= dt;
+      if (fuse.ticks <= 0) toDetonate.push(bombId);
     }
 
     // D-key detonation — detonate oldest owned bomb (FIFO)
@@ -89,6 +92,8 @@ export class BombSystem {
     engine.addComponent(entity.id, entity.render);
     engine.addComponent(entity.id, entity.animation);
     engine.addComponent(entity.id, entity.bomb);
+    engine.addComponent(entity.id, entity.gridPlacement);
+    engine.addComponent(entity.id, entity.fuse);
     engine.addComponent(entity.id, entity.destroyable);
     engine.addComponent(entity.id, entity.sound);
     gameState.bombs.push(entity.id);
@@ -100,27 +105,28 @@ export class BombSystem {
   }
 
   detonateBomb(bombId, gameState, engine) {
-    const bomb = engine.getComponent(bombId, BombComponent);
-    if (!bomb) return;
+    const bomb          = engine.getComponent(bombId, BombComponent);
+    const bombPlacement = engine.getComponent(bombId, GridPlacementComponent);
+    if (!bomb || !bombPlacement) return;
 
     const idx = gameState.bombs.indexOf(bombId);
     if (idx > -1) gameState.bombs.splice(idx, 1);
     engine.removeEntity(bombId);
 
-    gameState.gameMap[bomb.gridY][bomb.gridX] &= ~TYPE.BOMB;
+    gameState.gameMap[bombPlacement.gridY][bombPlacement.gridX] &= ~TYPE.BOMB;
 
     if (bomb.ownerId) {
       const player = engine.getComponent(bomb.ownerId, PlayerComponent);
       if (player) player.activeBombs = Math.max(0, player.activeBombs - 1);
     }
 
-    this.spawnFlame(bomb.gridX, bomb.gridY, 'C', gameState, engine, bomb.ownerId);
+    this.spawnFlame(bombPlacement.gridX, bombPlacement.gridY, 'C', gameState, engine, bomb.ownerId);
 
     for (const [dx, dy] of DIRECTIONS) {
       let hit = false;
       for (let i = 1; !hit && i <= bomb.yield; i++) {
-        const tx = bomb.gridX + dx * i;
-        const ty = bomb.gridY + dy * i;
+        const tx = bombPlacement.gridX + dx * i;
+        const ty = bombPlacement.gridY + dy * i;
 
         if (tx < 0 || ty < 0 || ty >= gameState.gameMap.length || tx >= gameState.gameMap[0].length) break;
 
@@ -132,10 +138,9 @@ export class BombSystem {
         }
 
         if (cell & TYPE.SOFT_BLOCK) {
-          // Start burn animation — DestroyableSystem handles the reveal spawn on completion
           const softBlockId = gameState.softBlocks.find(id => {
-            const t = engine.getComponent(id, TransformComponent);
-            return t && t.gridX === tx && t.gridY === ty;
+            const gp = engine.getComponent(id, GridPlacementComponent);
+            return gp && gp.gridX === tx && gp.gridY === ty;
           });
           if (softBlockId) {
             const sbDestroyable = engine.getComponent(softBlockId, DestroyableComponent);
@@ -147,23 +152,21 @@ export class BombSystem {
 
         if (cell & TYPE.POWER) {
           const entityId = gameState.powerups.find(id => {
-            const t = engine.getComponent(id, TransformComponent);
-            return t && t.gridX === tx && t.gridY === ty;
+            const gp = engine.getComponent(id, GridPlacementComponent);
+            return gp && gp.gridX === tx && gp.gridY === ty;
           });
           if (entityId) {
-            const t = engine.getComponent(entityId, TransformComponent);
-            gameState.gameMap[t.gridY][t.gridX] &= ~TYPE.POWER;
+            gameState.gameMap[ty][tx] &= ~TYPE.POWER;
             gameState.powerups.splice(gameState.powerups.indexOf(entityId), 1);
             engine.removeEntity(entityId);
             gameState.pendingEnemySpawnDoor = { gridX: tx, gridY: ty, enemyType: 'PONTAN' };
           }
         }
 
-
         if (cell & TYPE.BOMB) {
           const chainId = gameState.bombs.find(id => {
-            const b = engine.getComponent(id, BombComponent);
-            return b && b.gridX === tx && b.gridY === ty;
+            const gp = engine.getComponent(id, GridPlacementComponent);
+            return gp && gp.gridX === tx && gp.gridY === ty;
           });
           if (chainId) {
             const chainDestroyable = engine.getComponent(chainId, DestroyableComponent);
@@ -196,6 +199,8 @@ export class BombSystem {
     engine.addComponent(entity.id, entity.render);
     engine.addComponent(entity.id, entity.animation);
     engine.addComponent(entity.id, entity.flame);
+    engine.addComponent(entity.id, entity.gridPlacement);
+    engine.addComponent(entity.id, entity.fuse);
     gameState.flames.push(entity.id);
 
     // Play explode once for the center flame

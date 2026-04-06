@@ -1,7 +1,8 @@
 import { TYPE } from '../ecs/config.js';
 import { GameStateComponent } from '../components/GameStateComponent.js';
-import { TransformComponent } from '../components/TransformComponent.js';
 import { FlameComponent } from '../components/FlameComponent.js';
+import { FuseComponent } from '../components/FuseComponent.js';
+import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
 import { DestroyableComponent } from '../components/DestroyableComponent.js';
 import { HealthComponent } from '../components/HealthComponent.js';
 import { PlayerComponent } from '../components/PlayerComponent.js';
@@ -19,12 +20,14 @@ export class ExplosionSystem {
     const expired = [];
 
     for (const flameId of gameState.flames) {
-      const flame = engine.getComponent(flameId, FlameComponent);
-      if (!flame) continue;
+      const flame        = engine.getComponent(flameId, FlameComponent);
+      const fuse         = engine.getComponent(flameId, FuseComponent);
+      const flamePlacement = engine.getComponent(flameId, GridPlacementComponent);
+      if (!flame || !fuse || !flamePlacement) continue;
 
-      flame.fuseTicks -= dt;
+      fuse.ticks -= dt;
 
-      if (flame.fuseTicks <= 0) {
+      if (fuse.ticks <= 0) {
         expired.push(flameId);
         continue;
       }
@@ -33,8 +36,8 @@ export class ExplosionSystem {
       for (const [id] of engine.entities.entries()) {
         const destroyable = engine.getComponent(id, DestroyableComponent);
         if (!destroyable || destroyable.burning) continue;
-        const transform = engine.getComponent(id, TransformComponent);
-        if (!transform || transform.gridX !== flame.gridX || transform.gridY !== flame.gridY) continue;
+        const entityPlacement = engine.getComponent(id, GridPlacementComponent);
+        if (!entityPlacement || entityPlacement.gridX !== flamePlacement.gridX || entityPlacement.gridY !== flamePlacement.gridY) continue;
 
         // Respect invincibility, fireproof, and dying state
         const health  = engine.getComponent(id, HealthComponent);
@@ -49,19 +52,19 @@ export class ExplosionSystem {
 
     // Remove expired flames and clear their map flags
     for (const flameId of expired) {
-      const flame = engine.getComponent(flameId, FlameComponent);
-      if (!flame) continue;
+      const flamePlacement = engine.getComponent(flameId, GridPlacementComponent);
+      if (!flamePlacement) continue;
 
       const idx = gameState.flames.indexOf(flameId);
       if (idx > -1) gameState.flames.splice(idx, 1);
 
       // Only clear flag if no other flame still covers this cell
       const stillBurning = gameState.flames.some(id => {
-        const f = engine.getComponent(id, FlameComponent);
-        return f && f.gridX === flame.gridX && f.gridY === flame.gridY;
+        const gp = engine.getComponent(id, GridPlacementComponent);
+        return gp && gp.gridX === flamePlacement.gridX && gp.gridY === flamePlacement.gridY;
       });
-      if (!stillBurning && gameState.gameMap[flame.gridY]) {
-        gameState.gameMap[flame.gridY][flame.gridX] &= ~TYPE.EXPLOSION;
+      if (!stillBurning && gameState.gameMap[flamePlacement.gridY]) {
+        gameState.gameMap[flamePlacement.gridY][flamePlacement.gridX] &= ~TYPE.EXPLOSION;
       }
 
       engine.removeEntity(flameId);

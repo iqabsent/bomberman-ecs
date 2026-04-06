@@ -5,6 +5,7 @@ import { EnemyComponent } from '../components/EnemyComponent.js';
 import { AIComponent } from '../components/AIComponent.js';
 import { HealthComponent } from '../components/HealthComponent.js';
 import { DestroyableComponent } from '../components/DestroyableComponent.js';
+import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
 import { BLOCK_WIDTH, BLOCK_HEIGHT, RENDER_LAYER_ENEMY, ANIM_TICKS_PER_FRAME_ENEMY } from '../ecs/config.js';
 
 let nextId = 1;
@@ -17,8 +18,9 @@ export function createEnemy({ type, stats, gridX, gridY }) {
   entity.animation   = new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_ENEMY, animationKey: type + '_LD', shouldAnimate: true });
   entity.ai          = new AIComponent({ stats });
   entity.enemy       = new EnemyComponent({ type, stats });
-  entity.health      = new HealthComponent();
-  entity.destroyable = new DestroyableComponent();
+  entity.health        = new HealthComponent();
+  entity.gridPlacement = new GridPlacementComponent({ gridX, gridY });
+  entity.destroyable   = new DestroyableComponent();
 
   return entity;
 }
