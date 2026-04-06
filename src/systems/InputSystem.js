@@ -28,7 +28,6 @@ export class InputSystem {
     const gameState = engine.getSingleton(GameStateComponent);
 
     if (gameState && gameState.currentState === STATE.TITLE && this.justPressed.has(KEYMAP.S)) {
-      this.justPressed.clear();
       LevelSystem.removeAllLevelEntities(gameState, engine);
       LevelSystem.resetPlayer(engine, true);
       gameState.currentLevel = 0;
@@ -36,7 +35,6 @@ export class InputSystem {
       gameState.score = 0;
       LevelSystem.resetLevelState(gameState);
       gameState.toLoadingState();
-      return;
     }
 
     if (this.justPressed.has(KEYMAP.P) && gameState &&
@@ -52,61 +50,53 @@ export class InputSystem {
       }
     }
 
-    // Only process player input while actively playing
-    if (!gameState || gameState.currentState !== STATE.PLAYING) {
-      this.justPressed.clear();
-      return;
-    }
-    if (engine.paused) {
-      this.justPressed.clear();
-      return;
-    }
+    if (gameState && gameState.currentState === STATE.PLAYING && !engine.paused) {
+      for (const [id] of engine.entities.entries()) {
+        const player = engine.getComponent(id, PlayerComponent);
+        if (!player) continue;
 
-    for (const [id] of engine.entities.entries()) {
-      const player = engine.getComponent(id, PlayerComponent);
-      if (!player) continue;
+        const velocity = engine.getComponent(id, VelocityComponent);
+        if (!velocity) continue;
 
-      const velocity = engine.getComponent(id, VelocityComponent);
-      if (!velocity) continue;
+        const health = engine.getComponent(id, HealthComponent);
 
-      const health = engine.getComponent(id, HealthComponent);
+        if (health && health.isDying) {
+          velocity.vx = 0;
+          velocity.vy = 0;
+          continue;
+        }
 
-      if (health && health.isDying) {
+        const prevVx = velocity.vx;
+        const prevVy = velocity.vy;
+
+        const speed = player.movementSpeed;
+
+        // One axis at a time — no diagonal movement in Bomberman
         velocity.vx = 0;
         velocity.vy = 0;
-        continue;
-      }
+        if      (this.keyStates.has(KEYMAP.LEFT))  velocity.vx = -speed;
+        else if (this.keyStates.has(KEYMAP.RIGHT)) velocity.vx =  speed;
+        else if (this.keyStates.has(KEYMAP.UP))    velocity.vy = -speed;
+        else if (this.keyStates.has(KEYMAP.DOWN))  velocity.vy =  speed;
 
-      const prevVx = velocity.vx;
-      const prevVy = velocity.vy;
+        const anim = engine.getComponent(id, AnimationComponent);
+        if (anim) {
+          const moving = velocity.vx !== 0 || velocity.vy !== 0;
+          anim.shouldAnimate = moving;
 
-      const speed = player.movementSpeed;
-
-      // One axis at a time — no diagonal movement in Bomberman
-      velocity.vx = 0;
-      velocity.vy = 0;
-      if      (this.keyStates.has(KEYMAP.LEFT))  velocity.vx = -speed;
-      else if (this.keyStates.has(KEYMAP.RIGHT)) velocity.vx =  speed;
-      else if (this.keyStates.has(KEYMAP.UP))    velocity.vy = -speed;
-      else if (this.keyStates.has(KEYMAP.DOWN))  velocity.vy =  speed;
-
-      const anim = engine.getComponent(id, AnimationComponent);
-      if (anim) {
-        const moving = velocity.vx !== 0 || velocity.vy !== 0;
-        anim.shouldAnimate = moving;
-
-        const dirChanged = velocity.vx !== prevVx || velocity.vy !== prevVy;
-        if (dirChanged && moving) {
-          anim.loop = true;
-          if      (velocity.vy < 0) anim.animationKey = 'MAN_UP';
-          else if (velocity.vy > 0) anim.animationKey = 'MAN_DOWN';
-          else if (velocity.vx < 0) anim.animationKey = 'MAN_LEFT';
-          else if (velocity.vx > 0) anim.animationKey = 'MAN_RIGHT';
+          const dirChanged = velocity.vx !== prevVx || velocity.vy !== prevVy;
+          if (dirChanged && moving) {
+            anim.loop = true;
+            if      (velocity.vy < 0) anim.animationKey = 'MAN_UP';
+            else if (velocity.vy > 0) anim.animationKey = 'MAN_DOWN';
+            else if (velocity.vx < 0) anim.animationKey = 'MAN_LEFT';
+            else if (velocity.vx > 0) anim.animationKey = 'MAN_RIGHT';
+          }
         }
-      }
 
-      player.wantsToPlaceBomb = this.keyStates.has(KEYMAP.S);
-      player.wantsToDetonate  = this.justPressed.has(KEYMAP.D);
+        player.wantsToPlaceBomb = this.keyStates.has(KEYMAP.S);
+        player.wantsToDetonate  = this.justPressed.has(KEYMAP.D);
+      }
     }
 
     this.justPressed.clear();

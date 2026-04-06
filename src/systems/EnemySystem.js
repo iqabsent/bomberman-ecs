@@ -44,96 +44,88 @@ export class EnemySystem {
       return;
     }
 
-    // Advance death animations — runs in PLAYING and LEVEL_CLEAR
     if (gameState.currentState === STATE.PLAYING || gameState.currentState === STATE.LEVEL_CLEAR) {
-      for (let i = gameState.dyingEnemies.length - 1; i >= 0; i--) {
-        const entityId = gameState.dyingEnemies[i];
-        const enemy    = engine.getComponent(entityId, EnemyComponent);
-        const anim     = engine.getComponent(entityId, AnimationComponent);
-        const render   = engine.getComponent(entityId, RenderComponent);
-        if (!enemy) continue;
-        this.advanceDeath(enemy, anim, render, dt, gameState, i, engine, entityId);
-      }
+      this.advanceDeathAnimations(engine, gameState, dt);
     }
 
-    if (gameState.currentState !== STATE.PLAYING) return;
+    if (gameState.currentState === STATE.PLAYING) {
+      // Door burn — spawn enemies once flames have cleared the door cell
+      if (gameState.pendingEnemySpawnDoor) {
+        const { gridX, gridY, enemyType } = gameState.pendingEnemySpawnDoor;
+        const flamesOnCell = gameState.flames.some(id => {
+          const f = engine.getComponent(id, FlameComponent);
+          return f && f.gridX === gridX && f.gridY === gridY;
+        });
+        if (!flamesOnCell) {
+          const stats = ENEMY[enemyType];
+          if (stats) {
+            for (let j = 0; j < 8; j++) {
+              const id = EnemySystem.createEnemy(enemyType, stats, gridX, gridY, engine);
+              gameState.enemies.push(id);
+            }
+          }
+          gameState.pendingEnemySpawnDoor = null;
+        }
+      }
 
-    // Door burn — spawn enemies once flames have cleared the door cell
-    if (gameState.pendingEnemySpawnDoor) {
-      const { gridX, gridY, enemyType } = gameState.pendingEnemySpawnDoor;
-      const flamesOnCell = gameState.flames.some(id => {
-        const f = engine.getComponent(id, FlameComponent);
-        return f && f.gridX === gridX && f.gridY === gridY;
-      });
-      if (!flamesOnCell) {
-        const stats = ENEMY[enemyType];
-        if (stats) {
-          for (let j = 0; j < 8; j++) {
-            const id = EnemySystem.createEnemy(enemyType, stats, gridX, gridY, engine);
+      // Timer expiry — spawn PONTANs at random clear cells
+      if (gameState.pendingEnemySpawnTimer) {
+        const stats = ENEMY['PONTAN'];
+        for (let i = 0; i < 5; i++) {
+          const spawn = EnemySystem.findSpawnPoint(gameState.gameMap, 0);
+          if (spawn) {
+            const id = EnemySystem.createEnemy('PONTAN', stats, spawn.gridX, spawn.gridY, engine);
             gameState.enemies.push(id);
           }
         }
-        gameState.pendingEnemySpawnDoor = null;
+        gameState.pendingEnemySpawnTimer = false;
       }
-    }
 
-    // Timer expiry — spawn PONTANs at random clear cells
-    if (gameState.pendingEnemySpawnTimer) {
-      const stats = ENEMY['PONTAN'];
-      for (let i = 0; i < 5; i++) {
-        const spawn = EnemySystem.findSpawnPoint(gameState.gameMap, 0);
-        if (spawn) {
-          const id = EnemySystem.createEnemy('PONTAN', stats, spawn.gridX, spawn.gridY, engine);
-          gameState.enemies.push(id);
+      // Gather player grid positions for collision checks
+      const playerCells = [];
+      for (const [id] of engine.entities.entries()) {
+        const playerInput = engine.getComponent(id, PlayerComponent);
+        if (!playerInput) continue;
+        const transform = engine.getComponent(id, TransformComponent);
+        const health    = engine.getComponent(id, HealthComponent);
+        const player    = engine.getComponent(id, PlayerComponent);
+        if (transform && health) {
+          playerCells.push({ gridX: transform.gridX, gridY: transform.gridY, health, player });
         }
       }
-      gameState.pendingEnemySpawnTimer = false;
-    }
 
-    // Gather player grid positions for collision checks
-    const playerCells = [];
-    for (const [id] of engine.entities.entries()) {
-      const playerInput = engine.getComponent(id, PlayerComponent);
-      if (!playerInput) continue;
-      const transform = engine.getComponent(id, TransformComponent);
-      const health    = engine.getComponent(id, HealthComponent);
-      const player    = engine.getComponent(id, PlayerComponent);
-      if (transform && health) {
-        playerCells.push({ gridX: transform.gridX, gridY: transform.gridY, health, player });
-      }
-    }
+      for (let i = gameState.enemies.length - 1; i >= 0; i--) {
+        const entityId = gameState.enemies[i];
+        const enemy    = engine.getComponent(entityId, EnemyComponent);
+        if (!enemy) continue;
 
-    for (let i = gameState.enemies.length - 1; i >= 0; i--) {
-      const entityId = gameState.enemies[i];
-      const enemy    = engine.getComponent(entityId, EnemyComponent);
-      if (!enemy) continue;
+        const transform = engine.getComponent(entityId, TransformComponent);
+        const ai        = engine.getComponent(entityId, AIComponent);
+        const anim      = engine.getComponent(entityId, AnimationComponent);
+        const render    = engine.getComponent(entityId, RenderComponent);
 
-      const transform = engine.getComponent(entityId, TransformComponent);
-      const ai        = engine.getComponent(entityId, AIComponent);
-      const anim      = engine.getComponent(entityId, AnimationComponent);
-      const render    = engine.getComponent(entityId, RenderComponent);
+        // Check explosion collision
+        const mapCell = gameState.gameMap[transform.gridY] && gameState.gameMap[transform.gridY][transform.gridX];
+        if (mapCell & TYPE.EXPLOSION) {
+          this.killEnemy(enemy, anim, render, gameState, i, engine, entityId);
+          continue;
+        }
 
-      // Check explosion collision
-      const mapCell = gameState.gameMap[transform.gridY] && gameState.gameMap[transform.gridY][transform.gridX];
-      if (mapCell & TYPE.EXPLOSION) {
-        this.killEnemy(enemy, anim, render, gameState, i, engine, entityId);
-        continue;
-      }
-
-      // Check player collision
-      for (const pc of playerCells) {
-        if (pc.gridX === transform.gridX && pc.gridY === transform.gridY) {
-          if (!(pc.player && pc.player.invincibilityTimer) && !pc.health.isDying) {
-            pc.health.isDying = true;
+        // Check player collision
+        for (const pc of playerCells) {
+          if (pc.gridX === transform.gridX && pc.gridY === transform.gridY) {
+            if (!(pc.player && pc.player.invincibilityTimer) && !pc.health.isDying) {
+              pc.health.isDying = true;
+            }
           }
         }
+
+        // AI — decide direction
+        this.updateAI(enemy, ai, transform, gameState, dt, anim);
+
+        // Move
+        this.moveEnemy(ai, transform, gameState, dt);
       }
-
-      // AI — decide direction
-      this.updateAI(enemy, ai, transform, gameState, dt, anim);
-
-      // Move
-      this.moveEnemy(ai, transform, gameState, dt);
     }
   }
 
@@ -258,6 +250,17 @@ export class EnemySystem {
         const sound = engine.getComponent(gsEntity.id, SoundComponent);
         if (sound) sound.queue.push('pause');
       }
+    }
+  }
+
+  advanceDeathAnimations(engine, gameState, dt) {
+    for (let i = gameState.dyingEnemies.length - 1; i >= 0; i--) {
+      const entityId = gameState.dyingEnemies[i];
+      const enemy    = engine.getComponent(entityId, EnemyComponent);
+      const anim     = engine.getComponent(entityId, AnimationComponent);
+      const render   = engine.getComponent(entityId, RenderComponent);
+      if (!enemy) continue;
+      this.advanceDeath(enemy, anim, render, dt, gameState, i, engine, entityId);
     }
   }
 
