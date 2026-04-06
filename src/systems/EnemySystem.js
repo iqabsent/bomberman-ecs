@@ -12,7 +12,6 @@ import { HealthComponent } from '../components/HealthComponent.js';
 import { PlayerComponent } from '../components/PlayerComponent.js';
 import { createEnemy as createEnemyEntity } from '../entities/Enemy.js';
 import { FlameComponent } from '../components/FlameComponent.js';
-import { assetManager } from '../utils/AssetManager.js';
 import { SoundComponent } from '../components/SoundComponent.js';
 
 // Ticks before death animation starts — original: queue('startDeathAnimation', 5) * 18
@@ -235,7 +234,8 @@ export class EnemySystem {
     enemy.deathPhase = 1;
     enemy.deathWaitLeft = DEATH_WAIT_TICKS;
     anim.animationKey = null;
-    render.sprite = assetManager.getSprite(enemy.type + '_DEATH');
+    render.sprite = null;
+    render.spriteKey = enemy.type + '_DEATH';
 
     // Remove from live list and award score immediately; move to dying list for animation
     gameState.score += enemy.points;
@@ -269,10 +269,10 @@ export class EnemySystem {
       enemy.deathWaitLeft -= dt;
       if (enemy.deathWaitLeft <= 0) {
         enemy.deathPhase = 2;
+        render.spriteKey = null;
         anim.animationKey = 'ENEMY_DEATH';
         anim.loop = false;
         anim.shouldAnimate = true;
-        render.sprite = null;
       }
     } else if (enemy.deathPhase === 2) {
       if (!anim.shouldAnimate) {

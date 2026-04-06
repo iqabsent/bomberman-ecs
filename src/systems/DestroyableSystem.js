@@ -22,10 +22,12 @@ export class DestroyableSystem {
 
       const transform = engine.getComponent(id, TransformComponent);
 
-      // Queue reveal immediately when burn starts (first tick burning is detected)
+      // Queue reveal and start burn animation on the first tick burning is detected
       if (!destroyable.revealQueued && transform) {
         destroyable.revealQueued = true;
         gameState.pendingMapReveals.push({ gridX: transform.gridX, gridY: transform.gridY });
+        anim.loop = false;
+        anim.shouldAnimate = true;
       }
 
       // Remove entity once animation completes

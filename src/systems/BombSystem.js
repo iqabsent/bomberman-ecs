@@ -3,7 +3,6 @@ import { GameStateComponent } from '../components/GameStateComponent.js';
 import { TransformComponent } from '../components/TransformComponent.js';
 import { PlayerComponent } from '../components/PlayerComponent.js';
 import { BombComponent } from '../components/BombComponent.js';
-import { AnimationComponent } from '../components/AnimationComponent.js';
 import { DestroyableComponent } from '../components/DestroyableComponent.js';
 import { createBomb } from '../entities/Bomb.js';
 import { createFlame } from '../entities/Flame.js';
@@ -139,16 +138,8 @@ export class BombSystem {
             return t && t.gridX === tx && t.gridY === ty;
           });
           if (softBlockId) {
-            const sbAnim        = engine.getComponent(softBlockId, AnimationComponent);
             const sbDestroyable = engine.getComponent(softBlockId, DestroyableComponent);
-            if (sbAnim && sbDestroyable) {
-              sbAnim.animationKey = 'SOFT_BLOCK';
-              sbAnim.loop = false;
-              sbAnim.frame = 1;
-              sbAnim.ticks = 0;
-              sbAnim.shouldAnimate = true;
-              sbDestroyable.burning = true;
-            }
+            if (sbDestroyable) sbDestroyable.burning = true;
           }
           hit = true;
           continue;
