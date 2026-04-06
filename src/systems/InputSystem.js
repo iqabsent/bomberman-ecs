@@ -84,12 +84,14 @@ export class InputSystem {
           anim.shouldAnimate = moving;
 
           const dirChanged = velocity.vx !== prevVx || velocity.vy !== prevVy;
-          if (dirChanged && moving) {
+          const invChanged = (player.invincibilityTimer > 0) !== (anim.animationKey?.includes('_I_'));
+          if ((dirChanged || invChanged) && moving) {
+            const inv = player.invincibilityTimer > 0;
             anim.loop = true;
-            if      (velocity.vy < 0) anim.animationKey = 'MAN_UP';
-            else if (velocity.vy > 0) anim.animationKey = 'MAN_DOWN';
-            else if (velocity.vx < 0) anim.animationKey = 'MAN_LEFT';
-            else if (velocity.vx > 0) anim.animationKey = 'MAN_RIGHT';
+            if      (velocity.vy < 0) anim.animationKey = inv ? 'MAN_I_UP'    : 'MAN_UP';
+            else if (velocity.vy > 0) anim.animationKey = inv ? 'MAN_I_DOWN'  : 'MAN_DOWN';
+            else if (velocity.vx < 0) anim.animationKey = inv ? 'MAN_I_LEFT'  : 'MAN_LEFT';
+            else if (velocity.vx > 0) anim.animationKey = inv ? 'MAN_I_RIGHT' : 'MAN_RIGHT';
           }
         }
 

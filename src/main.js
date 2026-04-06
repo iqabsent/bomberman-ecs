@@ -24,6 +24,7 @@ import { assetManager } from './utils/AssetManager.js';
 import { soundManager } from './utils/SoundManager.js';
 import { SFX } from './utils/SFX.js';
 import { MUSIC } from './utils/MUSIC.js';
+import { DEBUG_MODE } from './ecs/config.js';
 
 const init = async () => {
   await assetManager.loadAssets();
@@ -53,7 +54,8 @@ const init = async () => {
   engine.registerSystem('music',       new MusicSystem());
   engine.registerSystem('camera',      new CameraSystem());
   engine.registerSystem('render',      new RenderSystem(ctx));
-  engine.registerSystem('debug',       new DebugSystem());
+
+  if (DEBUG_MODE) engine.registerSystem('debug', new DebugSystem());
 
   // Create game state entity — starts in STATE.LOADING, handled on first tick
   const gameEntity = { id: 'game-state' };

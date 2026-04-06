@@ -1,4 +1,5 @@
-export const TEST_MODE = true;
+export const TEST_MODE = false;
+export const DEBUG_MODE = false;
 
 // Game Type Enums
 export const TYPE = {
@@ -296,4 +297,5 @@ export const ASSET_PATH = 'images/';
 // In TEST_MODE, reduce every level to a single BALOM — power-ups unchanged
 if (TEST_MODE) {
   for (const lvl of LEVEL) lvl.enemies = { BALOM: 1 };
+  LEVEL[4].power = 'INVINCIBLE';
 }

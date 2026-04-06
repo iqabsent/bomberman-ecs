@@ -24,7 +24,7 @@ export class SoundSystem {
           sound._lastAnimFrame = anim.frame;
           // Mirrors original: play once at the start of frame 1 per animation cycle
           if (anim.frame === 1) {
-            const isLR = anim.animationKey === 'MAN_LEFT' || anim.animationKey === 'MAN_RIGHT';
+            const isLR = anim.animationKey?.endsWith('LEFT') || anim.animationKey?.endsWith('RIGHT');
             soundManager.play(isLR ? 'step_lr' : 'step_ud');
           }
         }

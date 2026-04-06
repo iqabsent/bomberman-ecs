@@ -64,6 +64,12 @@ export class PlayerSystem {
         if (player.invincibilityTimer > 0) {
           player.invincibilityTimer -= dt * (1000 / 60);
           if (player.invincibilityTimer < 0) player.invincibilityTimer = 0;
+
+          // Swap back to normal animation set the moment invincibility expires
+          if (player.invincibilityTimer === 0 && anim.animationKey?.includes('_I_')) {
+            anim.animationKey = anim.animationKey.replace('_I_', '_');
+            anim.shouldAnimate = true; // force one tick so AnimationSystem registers the key change
+          }
         }
 
         // Translate destroyable.burning → health.isDying
@@ -115,7 +121,7 @@ export class PlayerSystem {
     velocity.vy = 0;
     player.activeBombs = 0;
     if (health) { health.isDying = false; health.deathAnimStarted = false; }
-    anim.animationKey = 'MAN_DOWN';
+    anim.animationKey = player.invincibilityTimer > 0 ? 'MAN_I_DOWN' : 'MAN_DOWN';
     anim.loop = true;
     anim.shouldAnimate = false;
   }

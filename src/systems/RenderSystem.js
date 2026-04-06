@@ -18,7 +18,7 @@ export class RenderSystem {
     const gameState = engine.getSingleton(GameStateComponent);
     if (!gameState) return;
 
-    if (gameState.currentState !== STATE.TITLE && gameState.currentState !== STATE.LEVEL_START) {
+    if (gameState.currentState !== STATE.TITLE && gameState.currentState !== STATE.LEVEL_START && gameState.currentState !== STATE.LOADING) {
       this.renderHUD(ctx, gameState);
 
       ctx.save();
