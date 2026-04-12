@@ -1,5 +1,5 @@
 import { STATE, TYPE, MAP_WIDTH, MAP_HEIGHT, LEVEL } from '../ecs/config.js';
-import { GameStateComponent } from '../components/GameStateComponent.js';
+import { GAME_STATE } from '../components';
 import { createSoftBlock } from '../entities/SoftBlock.js';
 import { createPowerUp } from '../entities/PowerUp.js';
 import { createDoor } from '../entities/Door.js';
@@ -10,7 +10,7 @@ export class MapSystem {
   }
 
   apply(engine) {
-    const gameState = engine.getSingleton(GameStateComponent);
+    const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
     if (gameState.currentState === STATE.LOADING && gameState.mapLoading) {
@@ -37,14 +37,7 @@ export class MapSystem {
         for (let x = 0; x < map[y].length; x++) {
           if (map[y][x] & TYPE.SOFT_BLOCK) {
             gameState.softBlockCount++;
-            const entity = createSoftBlock({ gridX: x, gridY: y });
-            engine.addEntity(entity);
-            engine.addComponent(entity.id, entity.transform);
-            engine.addComponent(entity.id, entity.render);
-            engine.addComponent(entity.id, entity.animation);
-            engine.addComponent(entity.id, entity.gridPlacement);
-            engine.addComponent(entity.id, entity.destroyable);
-            gameState.softBlocks.push(entity.id);
+            gameState.softBlocks.push(createSoftBlock(engine, { gridX: x, gridY: y }));
           }
         }
       }
@@ -65,24 +58,11 @@ export class MapSystem {
       if (!gameState.powerSpawned && (!(n - 1) || Math.random() < 1 / (n - 1))) {
         gameState.powerSpawned = true;
         gameState.gameMap[gridY][gridX] = TYPE.PASSABLE | TYPE.POWER;
-        const entity = createPowerUp({ gridX, gridY, type: levelPower });
-        engine.addEntity(entity);
-        engine.addComponent(entity.id, entity.transform);
-        engine.addComponent(entity.id, entity.render);
-        engine.addComponent(entity.id, entity.collectible);
-        engine.addComponent(entity.id, entity.gridPlacement);
-        engine.addComponent(entity.id, entity.destroyable);
-        gameState.powerups.push(entity.id);
+        gameState.powerups.push(createPowerUp(engine, { gridX, gridY, type: levelPower }));
       } else if (!gameState.doorSpawned && (!n || Math.random() < 1 / n)) {
         gameState.doorSpawned = true;
         gameState.gameMap[gridY][gridX] = TYPE.PASSABLE | TYPE.DOOR;
-        const entity = createDoor({ gridX, gridY });
-        engine.addEntity(entity);
-        engine.addComponent(entity.id, entity.transform);
-        engine.addComponent(entity.id, entity.render);
-        engine.addComponent(entity.id, entity.gridPlacement);
-        engine.addComponent(entity.id, entity.destroyable);
-        gameState.door = entity.id;
+        gameState.door = createDoor(engine, { gridX, gridY });
       } else {
         gameState.gameMap[gridY][gridX] = TYPE.PASSABLE;
       }

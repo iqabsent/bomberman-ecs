@@ -8,17 +8,17 @@ import { SoundComponent } from '../components/SoundComponent.js';
 import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
 import { BLOCK_WIDTH, BLOCK_HEIGHT, RENDER_LAYER_BOMB, ANIM_TICKS_PER_FRAME_BOMB } from '../ecs/config.js';
 
-export function createBomb({ gridX, gridY, bombYield, ownerId }) {
-  const entity = { id: `bomb-${gridX}-${gridY}` };
+export function createBomb(engine, { gridX, gridY, bombYield, ownerId }) {
+  const id = `bomb-${gridX}-${gridY}`;
 
-  entity.transform  = new TransformComponent({ x: gridX * BLOCK_WIDTH, y: gridY * BLOCK_HEIGHT });
-  entity.render     = new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_BOMB });
-  entity.animation  = new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_BOMB, animationKey: 'BOMB', shouldAnimate: true });
-  entity.bomb        = new BombComponent({ bombYield, ownerId });
-  entity.gridPlacement = new GridPlacementComponent({ gridX, gridY });
-  entity.fuse          = new FuseComponent();
-  entity.destroyable = new DestroyableComponent();
-  entity.sound       = new SoundComponent();
+  engine.addComponent(id, new TransformComponent({ x: gridX * BLOCK_WIDTH, y: gridY * BLOCK_HEIGHT }));
+  engine.addComponent(id, new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_BOMB }));
+  engine.addComponent(id, new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_BOMB, animationKey: 'BOMB', shouldAnimate: true }));
+  engine.addComponent(id, new BombComponent({ bombYield, ownerId }));
+  engine.addComponent(id, new GridPlacementComponent({ gridX, gridY }));
+  engine.addComponent(id, new FuseComponent());
+  engine.addComponent(id, new DestroyableComponent());
+  engine.addComponent(id, new SoundComponent());
 
-  return entity;
+  return id;
 }

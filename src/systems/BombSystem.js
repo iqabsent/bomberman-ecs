@@ -1,14 +1,7 @@
 import { BLOCK_WIDTH, BLOCK_HEIGHT, TYPE, DIRECTIONS, BOMB_CHAIN_FUSE_TICKS } from '../ecs/config.js';
-import { FuseComponent } from '../components/FuseComponent.js';
-import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
-import { GameStateComponent } from '../components/GameStateComponent.js';
-import { TransformComponent } from '../components/TransformComponent.js';
-import { PlayerComponent } from '../components/PlayerComponent.js';
-import { BombComponent } from '../components/BombComponent.js';
-import { DestroyableComponent } from '../components/DestroyableComponent.js';
+import { BOMB, DESTROYABLE, FUSE, GAME_STATE, GRID_PLACEMENT, PLAYER, SOUND, TRANSFORM } from '../components';
 import { createBomb } from '../entities/Bomb.js';
 import { createFlame } from '../entities/Flame.js';
-import { SoundComponent } from '../components/SoundComponent.js';
 
 export class BombSystem {
   constructor() {
@@ -17,24 +10,24 @@ export class BombSystem {
 
   apply(engine, dt) {
 
-    const gameState = engine.getSingleton(GameStateComponent);
+    const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
     // Handle placement requests
-    for (const [id] of engine.entities.entries()) {
-      const player = engine.getComponent(id, PlayerComponent);
+    for (const id of engine.entities) {
+      const player = engine.getComponent(id, PLAYER);
       if (!player || !player.wantsToPlaceBomb) continue;
       player.wantsToPlaceBomb = false;
-      const transform = engine.getComponent(id, TransformComponent);
+      const transform = engine.getComponent(id, TRANSFORM);
       if (transform) this.tryPlaceBomb(id, transform, player, gameState, engine);
     }
 
     // Tick fuses and chain delays
     const toDetonate = [];
     for (const bombId of gameState.bombs) {
-      const bomb        = engine.getComponent(bombId, BombComponent);
-      const fuse        = engine.getComponent(bombId, FuseComponent);
-      const destroyable = engine.getComponent(bombId, DestroyableComponent);
+      const bomb        = engine.getComponent(bombId, BOMB);
+      const fuse        = engine.getComponent(bombId, FUSE);
+      const destroyable = engine.getComponent(bombId, DESTROYABLE);
       if (!bomb || !fuse) continue;
 
       // Chain hit — shorten fuse and mark as chained so canDetonate can't block it
@@ -47,7 +40,7 @@ export class BombSystem {
       // chained bombs always tick down regardless
       if (!bomb.chained) {
         const ownerPlayer = bomb.ownerId
-          ? engine.getComponent(bomb.ownerId, PlayerComponent)
+          ? engine.getComponent(bomb.ownerId, PLAYER)
           : null;
         if (ownerPlayer && ownerPlayer.canDetonate) continue;
       }
@@ -57,14 +50,14 @@ export class BombSystem {
     }
 
     // D-key detonation — detonate oldest owned bomb (FIFO)
-    for (const [id] of engine.entities.entries()) {
-      const player = engine.getComponent(id, PlayerComponent);
+    for (const id of engine.entities) {
+      const player = engine.getComponent(id, PLAYER);
       if (!player || !player.wantsToDetonate) continue;
       player.wantsToDetonate = false;
       if (!player.canDetonate) continue;
 
       const bombId = gameState.bombs.find(bid => {
-        const b = engine.getComponent(bid, BombComponent);
+        const b = engine.getComponent(bid, BOMB);
         return b && b.ownerId === id;
       });
       if (bombId && !toDetonate.includes(bombId)) toDetonate.push(bombId);
@@ -86,27 +79,17 @@ export class BombSystem {
 
     gameState.gameMap[gridY][gridX] |= TYPE.BOMB;
 
-    const entity = createBomb({ gridX, gridY, bombYield: player.bombYield, ownerId });
-    engine.addEntity(entity);
-    engine.addComponent(entity.id, entity.transform);
-    engine.addComponent(entity.id, entity.render);
-    engine.addComponent(entity.id, entity.animation);
-    engine.addComponent(entity.id, entity.bomb);
-    engine.addComponent(entity.id, entity.gridPlacement);
-    engine.addComponent(entity.id, entity.fuse);
-    engine.addComponent(entity.id, entity.destroyable);
-    engine.addComponent(entity.id, entity.sound);
-    gameState.bombs.push(entity.id);
+    gameState.bombs.push(createBomb(engine, { gridX, gridY, bombYield: player.bombYield, ownerId }));
 
-    const ownerSound = engine.getComponent(ownerId, SoundComponent);
+    const ownerSound = engine.getComponent(ownerId, SOUND);
     if (ownerSound) ownerSound.queue.push('plant');
 
     player.activeBombs++;
   }
 
   detonateBomb(bombId, gameState, engine) {
-    const bomb          = engine.getComponent(bombId, BombComponent);
-    const bombPlacement = engine.getComponent(bombId, GridPlacementComponent);
+    const bomb          = engine.getComponent(bombId, BOMB);
+    const bombPlacement = engine.getComponent(bombId, GRID_PLACEMENT);
     if (!bomb || !bombPlacement) return;
 
     const idx = gameState.bombs.indexOf(bombId);
@@ -116,11 +99,15 @@ export class BombSystem {
     gameState.gameMap[bombPlacement.gridY][bombPlacement.gridX] &= ~TYPE.BOMB;
 
     if (bomb.ownerId) {
-      const player = engine.getComponent(bomb.ownerId, PlayerComponent);
+      const player = engine.getComponent(bomb.ownerId, PLAYER);
       if (player) player.activeBombs = Math.max(0, player.activeBombs - 1);
     }
 
-    this.spawnFlame(bombPlacement.gridX, bombPlacement.gridY, 'C', gameState, engine, bomb.ownerId);
+    this.spawnFlame(bombPlacement.gridX, bombPlacement.gridY, 'C', gameState, engine);
+
+    // Play explode
+    const sound = engine.getComponent(bomb.ownerId, SOUND);
+    if (sound) sound.queue.push('explode');
 
     for (const [dx, dy] of DIRECTIONS) {
       let hit = false;
@@ -139,11 +126,11 @@ export class BombSystem {
 
         if (cell & TYPE.SOFT_BLOCK) {
           const softBlockId = gameState.softBlocks.find(id => {
-            const gp = engine.getComponent(id, GridPlacementComponent);
+            const gp = engine.getComponent(id, GRID_PLACEMENT);
             return gp && gp.gridX === tx && gp.gridY === ty;
           });
           if (softBlockId) {
-            const sbDestroyable = engine.getComponent(softBlockId, DestroyableComponent);
+            const sbDestroyable = engine.getComponent(softBlockId, DESTROYABLE);
             if (sbDestroyable) sbDestroyable.burning = true;
           }
           hit = true;
@@ -152,7 +139,7 @@ export class BombSystem {
 
         if (cell & TYPE.POWER) {
           const entityId = gameState.powerups.find(id => {
-            const gp = engine.getComponent(id, GridPlacementComponent);
+            const gp = engine.getComponent(id, GRID_PLACEMENT);
             return gp && gp.gridX === tx && gp.gridY === ty;
           });
           if (entityId) {
@@ -165,11 +152,11 @@ export class BombSystem {
 
         if (cell & TYPE.BOMB) {
           const chainId = gameState.bombs.find(id => {
-            const gp = engine.getComponent(id, GridPlacementComponent);
+            const gp = engine.getComponent(id, GRID_PLACEMENT);
             return gp && gp.gridX === tx && gp.gridY === ty;
           });
           if (chainId) {
-            const chainDestroyable = engine.getComponent(chainId, DestroyableComponent);
+            const chainDestroyable = engine.getComponent(chainId, DESTROYABLE);
             if (chainDestroyable) chainDestroyable.burning = true;
           }
           hit = true;
@@ -188,25 +175,11 @@ export class BombSystem {
     }
   }
 
-  spawnFlame(gridX, gridY, type, gameState, engine, soundOwnerId) {
+  spawnFlame(gridX, gridY, type, gameState, engine) {
     if (gameState.gameMap[gridY]) {
       gameState.gameMap[gridY][gridX] |= TYPE.EXPLOSION;
     }
 
-    const entity = createFlame({ gridX, gridY, type });
-    engine.addEntity(entity);
-    engine.addComponent(entity.id, entity.transform);
-    engine.addComponent(entity.id, entity.render);
-    engine.addComponent(entity.id, entity.animation);
-    engine.addComponent(entity.id, entity.flame);
-    engine.addComponent(entity.id, entity.gridPlacement);
-    engine.addComponent(entity.id, entity.fuse);
-    gameState.flames.push(entity.id);
-
-    // Play explode once for the center flame
-    if (type === 'C' && soundOwnerId) {
-      const sound = engine.getComponent(soundOwnerId, SoundComponent);
-      if (sound) sound.queue.push('explode');
-    }
+    gameState.flames.push(createFlame(engine, { gridX, gridY, type }));
   }
 }

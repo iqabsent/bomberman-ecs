@@ -1,9 +1,5 @@
 import { KEYMAP } from '../utils/KeyMap.js';
-import { VelocityComponent } from '../components/VelocityComponent.js';
-import { AnimationComponent } from '../components/AnimationComponent.js';
-import { PlayerComponent } from '../components/PlayerComponent.js';
-import { HealthComponent } from '../components/HealthComponent.js';
-import { GameStateComponent } from '../components/GameStateComponent.js';
+import { VELOCITY, ANIMATION, PLAYER, HEALTH, GAME_STATE } from '../components';
 import { LevelSystem } from './LevelSystem.js';
 import { soundManager } from '../utils/SoundManager.js';
 import { STATE, DEFAULT_LIVES } from '../ecs/config.js';
@@ -25,7 +21,7 @@ export class InputSystem {
   }
 
   apply(engine) {
-    const gameState = engine.getSingleton(GameStateComponent);
+    const gameState = engine.getSingleton(GAME_STATE);
 
     if (gameState && gameState.currentState === STATE.TITLE && this.justPressed.has(KEYMAP.S)) {
       LevelSystem.removeAllLevelEntities(gameState, engine);
@@ -50,14 +46,14 @@ export class InputSystem {
     }
 
     if (gameState && gameState.currentState === STATE.PLAYING && !engine.paused) {
-      for (const [id] of engine.entities.entries()) {
-        const player = engine.getComponent(id, PlayerComponent);
+      for (const id of engine.entities) {
+        const player = engine.getComponent(id, PLAYER);
         if (!player) continue;
 
-        const velocity = engine.getComponent(id, VelocityComponent);
+        const velocity = engine.getComponent(id, VELOCITY);
         if (!velocity) continue;
 
-        const health = engine.getComponent(id, HealthComponent);
+        const health = engine.getComponent(id, HEALTH);
 
         if (health && health.isDying) {
           velocity.vx = 0;
@@ -78,7 +74,7 @@ export class InputSystem {
         else if (this.keyStates.has(KEYMAP.UP))    velocity.vy = -speed;
         else if (this.keyStates.has(KEYMAP.DOWN))  velocity.vy =  speed;
 
-        const anim = engine.getComponent(id, AnimationComponent);
+        const anim = engine.getComponent(id, ANIMATION);
         if (anim) {
           const moving = velocity.vx !== 0 || velocity.vy !== 0;
           anim.shouldAnimate = moving;

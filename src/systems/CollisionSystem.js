@@ -1,12 +1,5 @@
 import { BLOCK_WIDTH, BLOCK_HEIGHT, MAP_WIDTH, MAP_HEIGHT, TYPE, STATE } from '../ecs/config.js';
-import { TransformComponent } from '../components/TransformComponent.js';
-import { VelocityComponent } from '../components/VelocityComponent.js';
-import { CollisionComponent } from '../components/CollisionComponent.js';
-import { HealthComponent } from '../components/HealthComponent.js';
-import { PlayerComponent } from '../components/PlayerComponent.js';
-import { CollectibleComponent } from '../components/CollectibleComponent.js';
-import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
-import { GameStateComponent } from '../components/GameStateComponent.js';
+import { TRANSFORM, VELOCITY, COLLISION, HEALTH, PLAYER, COLLECTIBLE, GRID_PLACEMENT, GAME_STATE } from '../components';
 
 export class CollisionSystem {
   constructor() {
@@ -14,19 +7,19 @@ export class CollisionSystem {
   }
 
   apply(engine) {
-    const gameState = engine.getSingleton(GameStateComponent);
+    const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState || !gameState.gameMap) return;
 
     const { gameMap } = gameState;
 
-    for (const [id] of engine.entities.entries()) {
-      const collision = engine.getComponent(id, CollisionComponent);
+    for (const id of engine.entities) {
+      const collision = engine.getComponent(id, COLLISION);
       if (!collision) continue;
 
-      const transform    = engine.getComponent(id, TransformComponent);
-      const velocity     = engine.getComponent(id, VelocityComponent);
-      const health       = engine.getComponent(id, HealthComponent);
-      const gridPlacement = engine.getComponent(id, GridPlacementComponent);
+      const transform    = engine.getComponent(id, TRANSFORM);
+      const velocity     = engine.getComponent(id, VELOCITY);
+      const health       = engine.getComponent(id, HEALTH);
+      const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
       if (!transform || !velocity || !gridPlacement) continue;
       if (health && health.isDying) continue;
 
@@ -37,7 +30,7 @@ export class CollisionSystem {
         const gridX = Math.round(transform.x / BLOCK_WIDTH);
         const gridY = Math.round(transform.y / BLOCK_HEIGHT);
 
-        const player = engine.getComponent(id, PlayerComponent);
+        const player = engine.getComponent(id, PLAYER);
 
         if (dirX !== 0) {
           const tgx = gridX + dirX;
@@ -71,11 +64,11 @@ export class CollisionSystem {
       // Mark overlapping collectible for pickup — CollectibleSystem handles the rest
       if (cell & TYPE.POWER) {
         const entityId = gameState.powerups.find(pid => {
-          const gp = engine.getComponent(pid, GridPlacementComponent);
+          const gp = engine.getComponent(pid, GRID_PLACEMENT);
           return gp && gp.gridX === gridX && gp.gridY === gridY;
         });
         if (entityId) {
-          const collectible = engine.getComponent(entityId, CollectibleComponent);
+          const collectible = engine.getComponent(entityId, COLLECTIBLE);
           if (collectible && !collectible.pickedUpBy) {
             collectible.pickedUpBy = id;
             gameState.gameMap[gridY][gridX] &= ~TYPE.POWER;

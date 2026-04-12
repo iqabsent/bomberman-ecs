@@ -1,7 +1,5 @@
 import { soundManager } from '../utils/SoundManager.js';
-import { SoundComponent } from '../components/SoundComponent.js';
-import { AnimationComponent } from '../components/AnimationComponent.js';
-import { PlayerComponent } from '../components/PlayerComponent.js';
+import { SOUND, ANIMATION, PLAYER } from '../components';
 
 export class SoundSystem {
   constructor() {
@@ -9,16 +7,16 @@ export class SoundSystem {
   }
 
   apply(engine) {
-    for (const [id] of engine.entities.entries()) {
-      const sound = engine.getComponent(id, SoundComponent);
+    for (const id of engine.entities) {
+      const sound = engine.getComponent(id, SOUND);
       if (!sound) continue;
 
       // Derive footstep sounds for the player from animation frame transitions.
       // This keeps footstep triggering here rather than in PlayerSystem,
       // avoiding sound coupling in the movement/input logic.
-      const playerInput = engine.getComponent(id, PlayerComponent);
+      const playerInput = engine.getComponent(id, PLAYER);
       if (playerInput) {
-        const anim = engine.getComponent(id, AnimationComponent);
+        const anim = engine.getComponent(id, ANIMATION);
 
         if (anim && anim.shouldAnimate && anim.frame !== sound._lastAnimFrame) {
           sound._lastAnimFrame = anim.frame;

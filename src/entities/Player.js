@@ -12,19 +12,19 @@ import { BLOCK_WIDTH, BLOCK_HEIGHT, RENDER_LAYER_PLAYER, ANIM_TICKS_PER_FRAME_PL
 
 let nextId = 1;
 
-export function createPlayer() {
-  const entity = { id: `player-${nextId++}` };
+export function createPlayer(engine) {
+  const id = `player-${nextId++}`;
 
-  entity.transform   = new TransformComponent({ x: BLOCK_WIDTH, y: BLOCK_HEIGHT });
-  entity.render      = new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_PLAYER });
-  entity.velocity    = new VelocityComponent();
-  entity.animation   = new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_PLAYER, animationKey: 'MAN_DOWN' });
-  entity.player      = new PlayerComponent();
-  entity.health      = new HealthComponent();
-  entity.gridPlacement = new GridPlacementComponent({ gridX: 1, gridY: 1 });
-  entity.collision   = new CollisionComponent();
-  entity.destroyable = new DestroyableComponent();
-  entity.sound       = new SoundComponent();
+  engine.addComponent(id, new TransformComponent({ x: BLOCK_WIDTH, y: BLOCK_HEIGHT }));
+  engine.addComponent(id, new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_PLAYER }));
+  engine.addComponent(id, new VelocityComponent());
+  engine.addComponent(id, new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_PLAYER, animationKey: 'MAN_DOWN' }));
+  engine.addComponent(id, new PlayerComponent());
+  engine.addComponent(id, new HealthComponent());
+  engine.addComponent(id, new GridPlacementComponent({ gridX: 1, gridY: 1 }));
+  engine.addComponent(id, new CollisionComponent());
+  engine.addComponent(id, new DestroyableComponent());
+  engine.addComponent(id, new SoundComponent());
 
-  return entity;
+  return id;
 }

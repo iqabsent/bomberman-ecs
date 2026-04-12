@@ -1,13 +1,5 @@
 import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPAWN, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER } from '../ecs/config.js';
-import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
-import { GameStateComponent } from '../components/GameStateComponent.js';
-import { TransformComponent } from '../components/TransformComponent.js';
-import { VelocityComponent } from '../components/VelocityComponent.js';
-import { AnimationComponent } from '../components/AnimationComponent.js';
-import { PlayerComponent } from '../components/PlayerComponent.js';
-import { HealthComponent } from '../components/HealthComponent.js';
-import { DestroyableComponent } from '../components/DestroyableComponent.js';
-import { SoundComponent } from '../components/SoundComponent.js';
+import { GRID_PLACEMENT, GAME_STATE, TRANSFORM, VELOCITY, ANIMATION, PLAYER, HEALTH, DESTROYABLE, SOUND } from '../components';
 
 export class PlayerSystem {
   constructor() {
@@ -15,38 +7,38 @@ export class PlayerSystem {
   }
 
   apply(engine, dt) {
-    const gameState = engine.getSingleton(GameStateComponent);
+    const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
     // Process pending spawns regardless of game state — may be set during LOADING or LEVEL_START
-    for (const [id] of engine.entities.entries()) {
-      const player = engine.getComponent(id, PlayerComponent);
+    for (const id of engine.entities) {
+      const player = engine.getComponent(id, PLAYER);
       if (!player || !player.pendingSpawn) continue;
 
-      const transform     = engine.getComponent(id, TransformComponent);
-      const velocity      = engine.getComponent(id, VelocityComponent);
-      const anim          = engine.getComponent(id, AnimationComponent);
-      const health        = engine.getComponent(id, HealthComponent);
-      const gridPlacement = engine.getComponent(id, GridPlacementComponent);
+      const transform     = engine.getComponent(id, TRANSFORM);
+      const velocity      = engine.getComponent(id, VELOCITY);
+      const anim          = engine.getComponent(id, ANIMATION);
+      const health        = engine.getComponent(id, HEALTH);
+      const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
       PlayerSystem.spawnPlayer(player, transform, velocity, anim, health, gridPlacement);
       if (player.pendingSpawn === SPAWN.GAME_SPAWN) PlayerSystem.resetPlayerStats(player);
       player.pendingSpawn = null;
     }
 
     if (gameState.currentState === STATE.LEVEL_CLEAR || gameState.currentState === STATE.PLAYER_DIED) {
-      for (const [id] of engine.entities.entries()) {
-        const player = engine.getComponent(id, PlayerComponent);
+      for (const id of engine.entities) {
+        const player = engine.getComponent(id, PLAYER);
         if (!player) continue;
-        const velocity = engine.getComponent(id, VelocityComponent);
-        const anim     = engine.getComponent(id, AnimationComponent);
+        const velocity = engine.getComponent(id, VELOCITY);
+        const anim     = engine.getComponent(id, ANIMATION);
         if (velocity) { velocity.vx = 0; velocity.vy = 0; }
         if (anim)     anim.shouldAnimate = false;
       }
     }
 
     if (gameState.currentState === STATE.PLAYING) {
-      for (const [id] of engine.entities.entries()) {
-        const player = engine.getComponent(id, PlayerComponent);
+      for (const id of engine.entities) {
+        const player = engine.getComponent(id, PLAYER);
         if (!player) continue;
 
         if (player.pendingPowerup) {
@@ -54,10 +46,10 @@ export class PlayerSystem {
           player.pendingPowerup = null;
         }
 
-        const health    = engine.getComponent(id, HealthComponent);
-        const anim      = engine.getComponent(id, AnimationComponent);
-        const transform = engine.getComponent(id, TransformComponent);
-        const velocity  = engine.getComponent(id, VelocityComponent);
+        const health    = engine.getComponent(id, HEALTH);
+        const anim      = engine.getComponent(id, ANIMATION);
+        const transform = engine.getComponent(id, TRANSFORM);
+        const velocity  = engine.getComponent(id, VELOCITY);
         if (!health || !anim || !transform || !velocity) continue;
 
         // Tick invincibility down every frame regardless of explosions
@@ -73,7 +65,7 @@ export class PlayerSystem {
         }
 
         // Translate destroyable.burning → health.isDying
-        const destroyable = engine.getComponent(id, DestroyableComponent);
+        const destroyable = engine.getComponent(id, DESTROYABLE);
         if (destroyable && destroyable.burning && !health.isDying) {
           health.isDying = true;
           destroyable.burning = false;
@@ -89,7 +81,7 @@ export class PlayerSystem {
           anim.animationKey = 'MAN_DEATH';
           anim.loop = false;
           anim.shouldAnimate = true;
-          const sound = engine.getComponent(id, SoundComponent);
+          const sound = engine.getComponent(id, SOUND);
           if (sound) sound.queue.push('burn');
           continue;
         }

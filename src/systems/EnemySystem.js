@@ -2,17 +2,8 @@ import {
   BLOCK_WIDTH, BLOCK_HEIGHT, MAP_WIDTH, MAP_HEIGHT,
   TYPE, DIRECTIONS, ENEMY, LEVEL, STATE
 } from '../ecs/config.js';
-import { GameStateComponent } from '../components/GameStateComponent.js';
-import { TransformComponent } from '../components/TransformComponent.js';
-import { AnimationComponent } from '../components/AnimationComponent.js';
-import { RenderComponent } from '../components/RenderComponent.js';
-import { EnemyComponent } from '../components/EnemyComponent.js';
-import { AIComponent } from '../components/AIComponent.js';
-import { HealthComponent } from '../components/HealthComponent.js';
-import { PlayerComponent } from '../components/PlayerComponent.js';
+import { GAME_STATE, TRANSFORM, ANIMATION, RENDER, ENEMY as ENEMY_C, AI, HEALTH, PLAYER, GRID_PLACEMENT, SOUND } from '../components';
 import { createEnemy as createEnemyEntity } from '../entities/Enemy.js';
-import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
-import { SoundComponent } from '../components/SoundComponent.js';
 
 // Ticks before death animation starts — original: queue('startDeathAnimation', 5) * 18
 const DEATH_WAIT_TICKS = 90;
@@ -24,7 +15,7 @@ export class EnemySystem {
 
   apply(engine, dt) {
 
-    const gameState = engine.getSingleton(GameStateComponent);
+    const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
     if (gameState.currentState === STATE.LOADING && gameState.enemyLoading && !gameState.mapLoading) {
@@ -52,7 +43,7 @@ export class EnemySystem {
       if (gameState.pendingEnemySpawnDoor) {
         const { gridX, gridY, enemyType } = gameState.pendingEnemySpawnDoor;
         const flamesOnCell = gameState.flames.some(id => {
-          const gp = engine.getComponent(id, GridPlacementComponent);
+          const gp = engine.getComponent(id, GRID_PLACEMENT);
           return gp && gp.gridX === gridX && gp.gridY === gridY;
         });
         if (!flamesOnCell) {
@@ -82,11 +73,11 @@ export class EnemySystem {
 
       // Gather player grid positions for collision checks
       const playerCells = [];
-      for (const [id] of engine.entities.entries()) {
-        if (!engine.getComponent(id, PlayerComponent)) continue;
-        const gridPlacement = engine.getComponent(id, GridPlacementComponent);
-        const health        = engine.getComponent(id, HealthComponent);
-        const player        = engine.getComponent(id, PlayerComponent);
+      for (const id of engine.entities) {
+        if (!engine.getComponent(id, PLAYER)) continue;
+        const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
+        const health        = engine.getComponent(id, HEALTH);
+        const player        = engine.getComponent(id, PLAYER);
         if (gridPlacement && health) {
           playerCells.push({ gridX: gridPlacement.gridX, gridY: gridPlacement.gridY, health, player });
         }
@@ -94,14 +85,14 @@ export class EnemySystem {
 
       for (let i = gameState.enemies.length - 1; i >= 0; i--) {
         const entityId     = gameState.enemies[i];
-        const enemy        = engine.getComponent(entityId, EnemyComponent);
+        const enemy        = engine.getComponent(entityId, ENEMY_C);
         if (!enemy) continue;
 
-        const transform     = engine.getComponent(entityId, TransformComponent);
-        const gridPlacement = engine.getComponent(entityId, GridPlacementComponent);
-        const ai            = engine.getComponent(entityId, AIComponent);
-        const anim          = engine.getComponent(entityId, AnimationComponent);
-        const render        = engine.getComponent(entityId, RenderComponent);
+        const transform     = engine.getComponent(entityId, TRANSFORM);
+        const gridPlacement = engine.getComponent(entityId, GRID_PLACEMENT);
+        const ai            = engine.getComponent(entityId, AI);
+        const anim          = engine.getComponent(entityId, ANIMATION);
+        const render        = engine.getComponent(entityId, RENDER);
 
         // Check explosion collision
         const mapCell = gameState.gameMap[gridPlacement.gridY] && gameState.gameMap[gridPlacement.gridY][gridPlacement.gridX];
@@ -244,10 +235,10 @@ export class EnemySystem {
 
     if (gameState.enemies.length === 0) {
       const gsEntity = Array.from(engine.entities.values()).find(
-        e => engine.getComponent(e.id, GameStateComponent)
+        e => engine.getComponent(e.id, GAME_STATE)
       );
       if (gsEntity) {
-        const sound = engine.getComponent(gsEntity.id, SoundComponent);
+        const sound = engine.getComponent(gsEntity.id, SOUND);
         if (sound) sound.queue.push('pause');
       }
     }
@@ -256,9 +247,9 @@ export class EnemySystem {
   advanceDeathAnimations(engine, gameState, dt) {
     for (let i = gameState.dyingEnemies.length - 1; i >= 0; i--) {
       const entityId = gameState.dyingEnemies[i];
-      const enemy    = engine.getComponent(entityId, EnemyComponent);
-      const anim     = engine.getComponent(entityId, AnimationComponent);
-      const render   = engine.getComponent(entityId, RenderComponent);
+      const enemy    = engine.getComponent(entityId, ENEMY_C);
+      const anim     = engine.getComponent(entityId, ANIMATION);
+      const render   = engine.getComponent(entityId, RENDER);
       if (!enemy) continue;
       this.advanceDeath(enemy, anim, render, dt, gameState, i, engine, entityId);
     }
@@ -297,16 +288,6 @@ export class EnemySystem {
   }
 
   static createEnemy(type, stats, gridX, gridY, engine) {
-    const entity = createEnemyEntity({ type, stats, gridX, gridY });
-    engine.addEntity(entity);
-    engine.addComponent(entity.id, entity.transform);
-    engine.addComponent(entity.id, entity.render);
-    engine.addComponent(entity.id, entity.animation);
-    engine.addComponent(entity.id, entity.ai);
-    engine.addComponent(entity.id, entity.enemy);
-    engine.addComponent(entity.id, entity.health);
-    engine.addComponent(entity.id, entity.gridPlacement);
-    engine.addComponent(entity.id, entity.destroyable);
-    return entity.id;
+    return createEnemyEntity(engine, { type, stats, gridX, gridY });
   }
 }

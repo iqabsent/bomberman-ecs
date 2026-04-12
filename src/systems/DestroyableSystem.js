@@ -1,8 +1,5 @@
 import { LEVEL } from '../ecs/config.js';
-import { GameStateComponent } from '../components/GameStateComponent.js';
-import { AnimationComponent } from '../components/AnimationComponent.js';
-import { DestroyableComponent } from '../components/DestroyableComponent.js';
-import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
+import { GAME_STATE, ANIMATION, DESTROYABLE, GRID_PLACEMENT } from '../components';
 
 export class DestroyableSystem {
   constructor() {
@@ -10,17 +7,17 @@ export class DestroyableSystem {
   }
 
   apply(engine) {
-    const gameState = engine.getSingleton(GameStateComponent);
+    const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
     // Soft blocks
     for (let i = gameState.softBlocks.length - 1; i >= 0; i--) {
       const id          = gameState.softBlocks[i];
-      const destroyable   = engine.getComponent(id, DestroyableComponent);
-      const anim          = engine.getComponent(id, AnimationComponent);
+      const destroyable   = engine.getComponent(id, DESTROYABLE);
+      const anim          = engine.getComponent(id, ANIMATION);
       if (!destroyable || !destroyable.burning || !anim) continue;
 
-      const gridPlacement = engine.getComponent(id, GridPlacementComponent);
+      const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
 
       // Queue reveal and start burn animation on the first tick burning is detected
       if (!destroyable.revealQueued && gridPlacement) {
@@ -39,10 +36,10 @@ export class DestroyableSystem {
 
     // Door — burning queues an enemy spawn for EnemySystem to handle once flames clear
     if (gameState.door && !gameState.doorTriggered) {
-      const destroyable = engine.getComponent(gameState.door, DestroyableComponent);
+      const destroyable = engine.getComponent(gameState.door, DESTROYABLE);
       if (destroyable && destroyable.burning) {
         destroyable.burning = false;
-        const gridPlacement = engine.getComponent(gameState.door, GridPlacementComponent);
+        const gridPlacement = engine.getComponent(gameState.door, GRID_PLACEMENT);
         const nextLevelData = LEVEL[(gameState.currentLevel + 1) % LEVEL.length];
         const enemyType     = Object.keys(nextLevelData.enemies).slice(-1)[0];
         gameState.pendingEnemySpawnDoor = { gridX: gridPlacement.gridX, gridY: gridPlacement.gridY, enemyType };

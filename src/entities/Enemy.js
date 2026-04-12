@@ -10,17 +10,17 @@ import { BLOCK_WIDTH, BLOCK_HEIGHT, RENDER_LAYER_ENEMY, ANIM_TICKS_PER_FRAME_ENE
 
 let nextId = 1;
 
-export function createEnemy({ type, stats, gridX, gridY }) {
-  const entity = { id: `enemy-${nextId++}` };
+export function createEnemy(engine, { type, stats, gridX, gridY }) {
+  const id = `enemy-${nextId++}`;
 
-  entity.transform   = new TransformComponent({ x: gridX * BLOCK_WIDTH, y: gridY * BLOCK_HEIGHT });
-  entity.render      = new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_ENEMY });
-  entity.animation   = new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_ENEMY, animationKey: type + '_LD', shouldAnimate: true });
-  entity.ai          = new AIComponent({ stats });
-  entity.enemy       = new EnemyComponent({ type, stats });
-  entity.health        = new HealthComponent();
-  entity.gridPlacement = new GridPlacementComponent({ gridX, gridY });
-  entity.destroyable   = new DestroyableComponent();
+  engine.addComponent(id, new TransformComponent({ x: gridX * BLOCK_WIDTH, y: gridY * BLOCK_HEIGHT }));
+  engine.addComponent(id, new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_ENEMY }));
+  engine.addComponent(id, new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_ENEMY, animationKey: type + '_LD', shouldAnimate: true }));
+  engine.addComponent(id, new AIComponent({ stats }));
+  engine.addComponent(id, new EnemyComponent({ type, stats }));
+  engine.addComponent(id, new HealthComponent());
+  engine.addComponent(id, new GridPlacementComponent({ gridX, gridY }));
+  engine.addComponent(id, new DestroyableComponent());
 
-  return entity;
+  return id;
 }

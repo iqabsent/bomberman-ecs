@@ -7,14 +7,14 @@ import { BLOCK_WIDTH, BLOCK_HEIGHT, RENDER_LAYER_POWER_UP } from '../ecs/config.
 
 let nextId = 1;
 
-export function createPowerUp({ gridX, gridY, type }) {
-  const entity = { id: `powerup-${nextId++}` };
+export function createPowerUp(engine, { gridX, gridY, type }) {
+  const id = `powerup-${nextId++}`;
 
-  entity.transform   = new TransformComponent({ x: gridX * BLOCK_WIDTH, y: gridY * BLOCK_HEIGHT });
-  entity.render      = new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_POWER_UP, spriteKey: 'POWER_' + type });
-  entity.collectible = new CollectibleComponent({ type });
-  entity.gridPlacement = new GridPlacementComponent({ gridX, gridY });
-  entity.destroyable   = new DestroyableComponent();
+  engine.addComponent(id, new TransformComponent({ x: gridX * BLOCK_WIDTH, y: gridY * BLOCK_HEIGHT }));
+  engine.addComponent(id, new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_POWER_UP, spriteKey: 'POWER_' + type }));
+  engine.addComponent(id, new CollectibleComponent({ type }));
+  engine.addComponent(id, new GridPlacementComponent({ gridX, gridY }));
+  engine.addComponent(id, new DestroyableComponent());
 
-  return entity;
+  return id;
 }

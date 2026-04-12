@@ -1,5 +1,5 @@
 import { STATE } from '../ecs/config.js';
-import { GameStateComponent } from '../components/GameStateComponent.js';
+import { GAME_STATE } from '../components';
 
 export class TimerSystem {
   constructor() {
@@ -8,7 +8,7 @@ export class TimerSystem {
 
   apply(engine, dt) {
 
-    const gameState = engine.getSingleton(GameStateComponent);
+    const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
     if (gameState.currentState !== STATE.PLAYING) return;
 

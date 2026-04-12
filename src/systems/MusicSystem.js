@@ -1,6 +1,5 @@
 import { STATE } from '../ecs/config.js';
-import { GameStateComponent } from '../components/GameStateComponent.js';
-import { PlayerComponent } from '../components/PlayerComponent.js';
+import { GAME_STATE, PLAYER } from '../components';
 import { soundManager } from '../utils/SoundManager.js';
 
 export class MusicSystem {
@@ -15,7 +14,7 @@ export class MusicSystem {
   }
 
   apply(engine) {
-    const gameState = engine.getSingleton(GameStateComponent);
+    const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
     // Apply any deferred state transition from a finished one-shot track
@@ -75,8 +74,8 @@ export class MusicSystem {
 
       case STATE.PLAYING: {
         let isInvincible = false;
-        for (const [id] of engine.entities.entries()) {
-          const player = engine.getComponent(id, PlayerComponent);
+        for (const id of engine.entities) {
+          const player = engine.getComponent(id, PLAYER);
           if (player && player.invincibilityTimer > 0) { isInvincible = true; break; }
         }
         if (isInvincible) {

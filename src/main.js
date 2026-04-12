@@ -58,26 +58,13 @@ const init = async () => {
   if (DEBUG_MODE) engine.registerSystem('debug', new DebugSystem());
 
   // Create game state entity — starts in STATE.LOADING, handled on first tick
-  const gameEntity = { id: 'game-state' };
-  engine.addEntity(gameEntity);
   const gameState = new GameStateComponent();
-  engine.addComponent(gameEntity.id, gameState);
+  engine.addComponent('game-state', gameState);
   engine.registerSingleton(gameState);
-  engine.addComponent(gameEntity.id, new SoundComponent());
+  engine.addComponent('game-state', new SoundComponent());
 
   // Create and register the player entity
-  const player = createPlayer();
-  engine.addEntity(player);
-  engine.addComponent(player.id, player.transform);
-  engine.addComponent(player.id, player.render);
-  engine.addComponent(player.id, player.velocity);
-  engine.addComponent(player.id, player.animation);
-  engine.addComponent(player.id, player.player);
-  engine.addComponent(player.id, player.health);
-  engine.addComponent(player.id, player.gridPlacement);
-  engine.addComponent(player.id, player.collision);
-  engine.addComponent(player.id, player.destroyable);
-  engine.addComponent(player.id, player.sound);
+  createPlayer(engine);
 
   // Retry music on any user interaction — unlocks autoplay after page load
   const onInteraction = () => soundManager.retryMusic();

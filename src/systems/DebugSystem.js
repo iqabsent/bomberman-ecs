@@ -1,10 +1,5 @@
 import { STATE } from '../ecs/config.js';
-import { GameStateComponent } from '../components/GameStateComponent.js';
-import { EnemyComponent } from '../components/EnemyComponent.js';
-import { TransformComponent } from '../components/TransformComponent.js';
-import { AnimationComponent } from '../components/AnimationComponent.js';
-import { PlayerComponent } from '../components/PlayerComponent.js';
-import { HealthComponent } from '../components/HealthComponent.js';
+import { GAME_STATE, ENEMY, TRANSFORM, ANIMATION, PLAYER, HEALTH } from '../components';
 
 const STATE_NAMES = Object.fromEntries(Object.entries(STATE).map(([k, v]) => [v, k]));
 
@@ -21,18 +16,18 @@ export class DebugSystem {
   apply(engine) {
     if (!this.el) return;
 
-    const gameState = engine.getSingleton(GameStateComponent);
+    const gameState = engine.getSingleton(GAME_STATE);
 
     let player = null;
     let health = null;
     let transform = null;
     let anim = null;
-    for (const [id] of engine.entities.entries()) {
-      player = engine.getComponent(id, PlayerComponent);
+    for (const id of engine.entities) {
+      player = engine.getComponent(id, PLAYER);
       if (!player) continue;
-      health    = engine.getComponent(id, HealthComponent);
-      transform = engine.getComponent(id, TransformComponent);
-      anim      = engine.getComponent(id, AnimationComponent);
+      health    = engine.getComponent(id, HEALTH);
+      transform = engine.getComponent(id, TRANSFORM);
+      anim      = engine.getComponent(id, ANIMATION);
       break;
     }
 
@@ -49,7 +44,7 @@ export class DebugSystem {
       );
       lines.push(
         `<b>MAP &nbsp;</b> ` +
-        val('enemies', `${gameState.enemies.filter(id => engine.getComponent(id, EnemyComponent)?.alive).length}/${gameState.enemies.length}`) + ' &nbsp; ' +
+        val('enemies', `${gameState.enemies.filter(id => engine.getComponent(id, ENEMY)?.alive).length}/${gameState.enemies.length}`) + ' &nbsp; ' +
         val('bombs', gameState.bombs.length) + ' &nbsp; ' +
         val('flames', gameState.flames.length) + ' &nbsp; ' +
         val('softblocks', gameState.softBlocks.length) + ' &nbsp; ' +

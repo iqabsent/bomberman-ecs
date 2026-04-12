@@ -1,7 +1,5 @@
 import { STATE, SPAWN, LEVEL, DEFAULT_LIVES, LEVEL_TIME } from '../ecs/config.js';
-import { GameStateComponent } from '../components/GameStateComponent.js';
-import { PlayerComponent } from '../components/PlayerComponent.js';
-import { HealthComponent } from '../components/HealthComponent.js';
+import { GAME_STATE, PLAYER, HEALTH } from '../components';
 
 export class LevelSystem {
   constructor() {
@@ -9,7 +7,7 @@ export class LevelSystem {
   }
 
   apply(engine) {
-    const gameState = engine.getSingleton(GameStateComponent);
+    const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
     if (gameState.currentState === STATE.LOADING) {
@@ -19,8 +17,8 @@ export class LevelSystem {
         // Remove all old entities before MapSystem/EnemySystem spawn new ones
         LevelSystem.removeAllLevelEntities(gameState, engine);
         const spawnType = gameState.previousState === STATE.TITLE ? SPAWN.GAME_SPAWN : SPAWN.LEVEL_SPAWN;
-        for (const [id] of engine.entities.entries()) {
-          const player = engine.getComponent(id, PlayerComponent);
+        for (const id of engine.entities) {
+          const player = engine.getComponent(id, PLAYER);
           if (player) player.pendingSpawn = spawnType;
         }
 
@@ -49,10 +47,10 @@ export class LevelSystem {
 
     if (gameState.currentState === STATE.LEVEL_START) {
       // Flag dying players for respawn — arriving from PLAYER_DIED with health.isDying still set
-      for (const [id] of engine.entities.entries()) {
-        const player = engine.getComponent(id, PlayerComponent);
+      for (const id of engine.entities) {
+        const player = engine.getComponent(id, PLAYER);
         if (!player) continue;
-        const health = engine.getComponent(id, HealthComponent);
+        const health = engine.getComponent(id, HEALTH);
         if (health && health.isDying) player.pendingSpawn = SPAWN.RESPAWN;
       }
       return;

@@ -1,7 +1,5 @@
 import { CANVAS_WIDTH, BLOCK_WIDTH, MAP_WIDTH } from '../ecs/config.js';
-import { GameStateComponent } from '../components/GameStateComponent.js';
-import { TransformComponent } from '../components/TransformComponent.js';
-import { PlayerComponent } from '../components/PlayerComponent.js';
+import { GAME_STATE, TRANSFORM, PLAYER } from '../components';
 
 export class CameraSystem {
   constructor() {
@@ -9,14 +7,14 @@ export class CameraSystem {
   }
 
   apply(engine) {
-    const gameState = engine.getSingleton(GameStateComponent);
+    const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
     let playerTransform = null;
-    for (const [id] of engine.entities.entries()) {
-      const player = engine.getComponent(id, PlayerComponent);
+    for (const id of engine.entities) {
+      const player = engine.getComponent(id, PLAYER);
       if (!player) continue;
-      playerTransform = engine.getComponent(id, TransformComponent);
+      playerTransform = engine.getComponent(id, TRANSFORM);
       break;
     }
     if (!playerTransform) return;

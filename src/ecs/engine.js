@@ -1,6 +1,6 @@
 export class Engine {
   constructor() {
-    this.entities = new Map();
+    this.entities = new Set();
     this.components = new Map();
     this.systems = new Map();
     this.singletons = new Map();
@@ -9,8 +9,22 @@ export class Engine {
     this.paused = false;
   }
 
-  addEntity(entity) {
-    this.entities.set(entity.id, entity);
+  addComponent(entityId, component) {
+    if (!this.components.has(entityId)) {
+      this.components.set(entityId, new Map());
+      this.entities.add(entityId);
+    }
+    this.components.get(entityId).set(component.constructor.name, component);
+  }
+
+  removeComponent(entityId, componentName) {
+    const map = this.components.get(entityId);
+    if (map) map.delete(componentName);
+  }
+
+  getComponent(entityId, componentName) {
+    const components = this.components.get(entityId);
+    return components ? components.get(componentName) : undefined;
   }
 
   removeEntity(entityId) {
@@ -18,22 +32,12 @@ export class Engine {
     this.components.delete(entityId);
   }
 
-  addComponent(entityId, component) {
-    if (!this.components.has(entityId)) this.components.set(entityId, new Map());
-    this.components.get(entityId).set(component.constructor.name, component);
-  }
-
-  getComponent(entityId, componentClass) {
-    const components = this.components.get(entityId);
-    return components ? components.get(componentClass.name) : undefined;
-  }
-
   registerSingleton(component) {
     this.singletons.set(component.constructor.name, component);
   }
 
-  getSingleton(componentClass) {
-    return this.singletons.get(componentClass.name);
+  getSingleton(componentName) {
+    return this.singletons.get(componentName);
   }
 
   registerSystem(name, system) {
