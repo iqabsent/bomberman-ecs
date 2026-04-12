@@ -46,7 +46,7 @@ export class InputSystem {
     }
 
     if (gameState && gameState.currentState === STATE.PLAYING && !engine.paused) {
-      for (const id of engine.entities) {
+      for (const id of gameState.players) {
         const player = engine.getComponent(id, PLAYER);
         if (!player) continue;
 

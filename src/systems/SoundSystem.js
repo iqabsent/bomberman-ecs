@@ -1,5 +1,5 @@
 import { soundManager } from '../utils/SoundManager.js';
-import { SOUND, ANIMATION, PLAYER } from '../components';
+import { SOUND, ANIMATION, GAME_STATE } from '../components';
 
 export class SoundSystem {
   constructor() {
@@ -7,10 +7,10 @@ export class SoundSystem {
   }
 
   apply(engine) {
+    const gameState = engine.getSingleton(GAME_STATE);
+
     // Footstep sounds — derived from player animation frame transitions
-    for (const id of engine.entities) {
-      const player = engine.getComponent(id, PLAYER);
-      if (!player) continue;
+    for (const id of (gameState?.players ?? [])) {
       const anim = engine.getComponent(id, ANIMATION);
       if (anim && anim.shouldAnimate && anim.frame === 1 && anim.ticks === 0) {
         const isLR = anim.animationKey?.endsWith('LEFT') || anim.animationKey?.endsWith('RIGHT');

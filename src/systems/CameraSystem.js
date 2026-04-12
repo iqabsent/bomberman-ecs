@@ -1,5 +1,5 @@
 import { CANVAS_WIDTH, BLOCK_WIDTH, MAP_WIDTH } from '../ecs/config.js';
-import { GAME_STATE, TRANSFORM, PLAYER } from '../components';
+import { GAME_STATE, TRANSFORM } from '../components';
 
 export class CameraSystem {
   constructor() {
@@ -10,13 +10,9 @@ export class CameraSystem {
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
-    let playerTransform = null;
-    for (const id of engine.entities) {
-      const player = engine.getComponent(id, PLAYER);
-      if (!player) continue;
-      playerTransform = engine.getComponent(id, TRANSFORM);
-      break;
-    }
+    const playerId = gameState.players[0];
+    if (!playerId) return;
+    const playerTransform = engine.getComponent(playerId, TRANSFORM);
     if (!playerTransform) return;
 
     const halfViewportWidth = CANVAS_WIDTH / 2;

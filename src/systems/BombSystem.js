@@ -14,7 +14,7 @@ export class BombSystem {
     if (!gameState) return;
 
     // Handle placement requests
-    for (const id of engine.entities) {
+    for (const id of gameState.players) {
       const player = engine.getComponent(id, PLAYER);
       if (!player || !player.wantsToPlaceBomb) continue;
       player.wantsToPlaceBomb = false;
@@ -50,7 +50,7 @@ export class BombSystem {
     }
 
     // D-key detonation — detonate oldest owned bomb (FIFO)
-    for (const id of engine.entities) {
+    for (const id of gameState.players) {
       const player = engine.getComponent(id, PLAYER);
       if (!player || !player.wantsToDetonate) continue;
       player.wantsToDetonate = false;

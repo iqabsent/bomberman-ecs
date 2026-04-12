@@ -73,12 +73,11 @@ export class EnemySystem {
 
       // Gather player grid positions for collision checks
       const playerCells = [];
-      for (const id of engine.entities) {
-        if (!engine.getComponent(id, PLAYER)) continue;
+      for (const id of gameState.players) {
         const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
         const health        = engine.getComponent(id, HEALTH);
         const player        = engine.getComponent(id, PLAYER);
-        if (gridPlacement && health) {
+        if (gridPlacement && health && player) {
           playerCells.push({ gridX: gridPlacement.gridX, gridY: gridPlacement.gridY, health, player });
         }
       }

@@ -18,18 +18,11 @@ export class DebugSystem {
 
     const gameState = engine.getSingleton(GAME_STATE);
 
-    let player = null;
-    let health = null;
-    let transform = null;
-    let anim = null;
-    for (const id of engine.entities) {
-      player = engine.getComponent(id, PLAYER);
-      if (!player) continue;
-      health    = engine.getComponent(id, HEALTH);
-      transform = engine.getComponent(id, TRANSFORM);
-      anim      = engine.getComponent(id, ANIMATION);
-      break;
-    }
+    const playerId = gameState?.players[0];
+    const player    = playerId ? engine.getComponent(playerId, PLAYER)    : null;
+    const health    = playerId ? engine.getComponent(playerId, HEALTH)    : null;
+    const transform = playerId ? engine.getComponent(playerId, TRANSFORM) : null;
+    const anim      = playerId ? engine.getComponent(playerId, ANIMATION) : null;
 
     const lines = [];
 

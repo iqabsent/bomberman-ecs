@@ -17,7 +17,7 @@ export class LevelSystem {
         // Remove all old entities before MapSystem/EnemySystem spawn new ones
         LevelSystem.removeAllLevelEntities(gameState, engine);
         const spawnType = gameState.previousState === STATE.TITLE ? SPAWN.GAME_SPAWN : SPAWN.LEVEL_SPAWN;
-        for (const id of engine.entities) {
+        for (const id of gameState.players) {
           const player = engine.getComponent(id, PLAYER);
           if (player) player.pendingSpawn = spawnType;
         }
@@ -47,11 +47,10 @@ export class LevelSystem {
 
     if (gameState.currentState === STATE.LEVEL_START) {
       // Flag dying players for respawn — arriving from PLAYER_DIED with health.isDying still set
-      for (const id of engine.entities) {
+      for (const id of gameState.players) {
         const player = engine.getComponent(id, PLAYER);
-        if (!player) continue;
         const health = engine.getComponent(id, HEALTH);
-        if (health && health.isDying) player.pendingSpawn = SPAWN.RESPAWN;
+        if (player && health && health.isDying) player.pendingSpawn = SPAWN.RESPAWN;
       }
       return;
     }

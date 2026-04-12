@@ -7,6 +7,7 @@ export class GameStateComponent {
     this.currentLevel = 0;
     this.lives = 0;
     this.score = 0;
+    this.players = [];
     this.bombs = [];
     this.flames = [];
     this.powerups = [];

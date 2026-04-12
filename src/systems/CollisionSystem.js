@@ -12,10 +12,7 @@ export class CollisionSystem {
 
     const { gameMap } = gameState;
 
-    for (const id of engine.entities) {
-      const collision = engine.getComponent(id, COLLISION);
-      if (!collision) continue;
-
+    for (const id of gameState.players) {
       const transform    = engine.getComponent(id, TRANSFORM);
       const velocity     = engine.getComponent(id, VELOCITY);
       const health       = engine.getComponent(id, HEALTH);

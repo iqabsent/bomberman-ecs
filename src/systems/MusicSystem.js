@@ -74,7 +74,7 @@ export class MusicSystem {
 
       case STATE.PLAYING: {
         let isInvincible = false;
-        for (const id of engine.entities) {
+        for (const id of gameState.players) {
           const player = engine.getComponent(id, PLAYER);
           if (player && player.invincibilityTimer > 0) { isInvincible = true; break; }
         }

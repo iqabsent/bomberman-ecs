@@ -2,7 +2,6 @@ import { Engine } from './ecs/engine.js';
 import { createPlayer } from './entities/Player.js';
 import { GameStateComponent } from './components/GameStateComponent.js';
 import { SoundComponent } from './components/SoundComponent.js';
-import { SOUND } from './components/index.js';
 import { BombSystem } from './systems/BombSystem.js';
 import { ExplosionSystem } from './systems/ExplosionSystem.js';
 import { CollisionSystem } from './systems/CollisionSystem.js';
@@ -67,7 +66,7 @@ const init = async () => {
   engine.registerSingleton(sound);
 
   // Create and register the player entity
-  createPlayer(engine);
+  gameState.players.push(createPlayer(engine));
 
   // Retry music on any user interaction — unlocks autoplay after page load
   const onInteraction = () => soundManager.retryMusic();

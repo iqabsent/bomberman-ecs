@@ -9,9 +9,9 @@ export class AnimationSystem {
   apply(engine, dt) {
 
     for (const id of engine.entities) {
-      const animation = engine.getComponent(id, ANIMATION);
       const render = engine.getComponent(id, RENDER);
-      if (!animation || !render || !animation.animationKey) continue;
+      const animation = engine.getComponent(id, ANIMATION);
+      if (!render || !animation || !animation.animationKey) continue;
 
       const frames = assetManager.getAnimation(animation.animationKey);
       if (!frames || !frames.length) continue;

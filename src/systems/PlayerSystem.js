@@ -11,7 +11,7 @@ export class PlayerSystem {
     if (!gameState) return;
 
     // Process pending spawns regardless of game state — may be set during LOADING or LEVEL_START
-    for (const id of engine.entities) {
+    for (const id of gameState.players) {
       const player = engine.getComponent(id, PLAYER);
       if (!player || !player.pendingSpawn) continue;
 
@@ -26,9 +26,7 @@ export class PlayerSystem {
     }
 
     if (gameState.currentState === STATE.LEVEL_CLEAR || gameState.currentState === STATE.PLAYER_DIED) {
-      for (const id of engine.entities) {
-        const player = engine.getComponent(id, PLAYER);
-        if (!player) continue;
+      for (const id of gameState.players) {
         const velocity = engine.getComponent(id, VELOCITY);
         const anim     = engine.getComponent(id, ANIMATION);
         if (velocity) { velocity.vx = 0; velocity.vy = 0; }
@@ -37,7 +35,7 @@ export class PlayerSystem {
     }
 
     if (gameState.currentState === STATE.PLAYING) {
-      for (const id of engine.entities) {
+      for (const id of gameState.players) {
         const player = engine.getComponent(id, PLAYER);
         if (!player) continue;
 
