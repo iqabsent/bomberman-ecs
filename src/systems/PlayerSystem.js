@@ -81,8 +81,7 @@ export class PlayerSystem {
           anim.animationKey = 'MAN_DEATH';
           anim.loop = false;
           anim.shouldAnimate = true;
-          const sound = engine.getComponent(id, SOUND);
-          if (sound) sound.queue.push('burn');
+          engine.getSingleton(SOUND).queue.push('burn');
           continue;
         }
 

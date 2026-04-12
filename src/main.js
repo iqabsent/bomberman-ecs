@@ -2,6 +2,7 @@ import { Engine } from './ecs/engine.js';
 import { createPlayer } from './entities/Player.js';
 import { GameStateComponent } from './components/GameStateComponent.js';
 import { SoundComponent } from './components/SoundComponent.js';
+import { SOUND } from './components/index.js';
 import { BombSystem } from './systems/BombSystem.js';
 import { ExplosionSystem } from './systems/ExplosionSystem.js';
 import { CollisionSystem } from './systems/CollisionSystem.js';
@@ -61,7 +62,9 @@ const init = async () => {
   const gameState = new GameStateComponent();
   engine.addComponent('game-state', gameState);
   engine.registerSingleton(gameState);
-  engine.addComponent('game-state', new SoundComponent());
+
+  const sound = new SoundComponent();
+  engine.registerSingleton(sound);
 
   // Create and register the player entity
   createPlayer(engine);

@@ -81,8 +81,7 @@ export class BombSystem {
 
     gameState.bombs.push(createBomb(engine, { gridX, gridY, bombYield: player.bombYield, ownerId }));
 
-    const ownerSound = engine.getComponent(ownerId, SOUND);
-    if (ownerSound) ownerSound.queue.push('plant');
+    engine.getSingleton(SOUND).queue.push('plant');
 
     player.activeBombs++;
   }
@@ -105,9 +104,7 @@ export class BombSystem {
 
     this.spawnFlame(bombPlacement.gridX, bombPlacement.gridY, 'C', gameState, engine);
 
-    // Play explode
-    const sound = engine.getComponent(bomb.ownerId, SOUND);
-    if (sound) sound.queue.push('explode');
+    engine.getSingleton(SOUND).queue.push('explode');
 
     for (const [dx, dy] of DIRECTIONS) {
       let hit = false;

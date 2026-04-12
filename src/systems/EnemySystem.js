@@ -234,13 +234,7 @@ export class EnemySystem {
     gameState.dyingEnemies.push(entityId);
 
     if (gameState.enemies.length === 0) {
-      const gsEntity = Array.from(engine.entities.values()).find(
-        e => engine.getComponent(e.id, GAME_STATE)
-      );
-      if (gsEntity) {
-        const sound = engine.getComponent(gsEntity.id, SOUND);
-        if (sound) sound.queue.push('pause');
-      }
+      engine.getSingleton(SOUND).queue.push('pause');
     }
   }
 

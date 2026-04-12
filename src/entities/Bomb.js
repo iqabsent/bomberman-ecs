@@ -4,7 +4,6 @@ import { AnimationComponent } from '../components/AnimationComponent.js';
 import { BombComponent } from '../components/BombComponent.js';
 import { FuseComponent } from '../components/FuseComponent.js';
 import { DestroyableComponent } from '../components/DestroyableComponent.js';
-import { SoundComponent } from '../components/SoundComponent.js';
 import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
 import { BLOCK_WIDTH, BLOCK_HEIGHT, RENDER_LAYER_BOMB, ANIM_TICKS_PER_FRAME_BOMB } from '../ecs/config.js';
 
@@ -18,7 +17,6 @@ export function createBomb(engine, { gridX, gridY, bombYield, ownerId }) {
   engine.addComponent(id, new GridPlacementComponent({ gridX, gridY }));
   engine.addComponent(id, new FuseComponent());
   engine.addComponent(id, new DestroyableComponent());
-  engine.addComponent(id, new SoundComponent());
 
   return id;
 }

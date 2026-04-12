@@ -7,34 +7,21 @@ export class SoundSystem {
   }
 
   apply(engine) {
+    // Footstep sounds — derived from player animation frame transitions
     for (const id of engine.entities) {
-      const sound = engine.getComponent(id, SOUND);
-      if (!sound) continue;
-
-      // Derive footstep sounds for the player from animation frame transitions.
-      // This keeps footstep triggering here rather than in PlayerSystem,
-      // avoiding sound coupling in the movement/input logic.
-      const playerInput = engine.getComponent(id, PLAYER);
-      if (playerInput) {
-        const anim = engine.getComponent(id, ANIMATION);
-
-        if (anim && anim.shouldAnimate && anim.frame !== sound._lastAnimFrame) {
-          sound._lastAnimFrame = anim.frame;
-          // Mirrors original: play once at the start of frame 1 per animation cycle
-          if (anim.frame === 1) {
-            const isLR = anim.animationKey?.endsWith('LEFT') || anim.animationKey?.endsWith('RIGHT');
-            soundManager.play(isLR ? 'step_lr' : 'step_ud');
-          }
-        }
-
-        if (!anim || !anim.shouldAnimate) sound._lastAnimFrame = -1; // reset so first step plays immediately next time
+      const player = engine.getComponent(id, PLAYER);
+      if (!player) continue;
+      const anim = engine.getComponent(id, ANIMATION);
+      if (anim && anim.shouldAnimate && anim.frame === 1 && anim.ticks === 0) {
+        const isLR = anim.animationKey?.endsWith('LEFT') || anim.animationKey?.endsWith('RIGHT');
+        soundManager.play(isLR ? 'step_lr' : 'step_ud');
       }
-
-      // Play all queued sounds and clear the queue
-      for (const key of sound.queue) {
-        soundManager.play(key);
-      }
-      sound.queue = [];
     }
+
+    // Drain the global sound queue
+    const sound = engine.getSingleton(SOUND);
+    if (!sound) return;
+    for (const key of sound.queue) soundManager.play(key);
+    sound.queue = [];
   }
 }
