@@ -68,7 +68,6 @@ export class LevelSystem {
     gameState.bombs = [];
     gameState.flames = [];
     gameState.enemies = [];
-    gameState.dyingEnemies = [];
     gameState.softBlocks = [];
     gameState.pendingMapReveals = [];
     gameState.pendingEnemySpawnDoor  = null;
@@ -78,7 +77,6 @@ export class LevelSystem {
 
   static removeAllLevelEntities(gameState, engine) {
     for (const id of gameState.enemies)      engine.removeEntity(id);
-    for (const id of gameState.dyingEnemies) engine.removeEntity(id);
     for (const id of gameState.bombs)        engine.removeEntity(id);
     for (const id of gameState.powerups)     engine.removeEntity(id);
     for (const id of gameState.softBlocks)   engine.removeEntity(id);

@@ -85,7 +85,8 @@ export class EnemySystem {
       for (let i = gameState.enemies.length - 1; i >= 0; i--) {
         const entityId     = gameState.enemies[i];
         const enemy        = engine.getComponent(entityId, ENEMY_C);
-        if (!enemy) continue;
+        const health       = engine.getComponent(entityId, HEALTH);
+        if (!enemy || !health || health.isDying) continue;
 
         const transform     = engine.getComponent(entityId, TRANSFORM);
         const gridPlacement = engine.getComponent(entityId, GRID_PLACEMENT);
@@ -96,7 +97,7 @@ export class EnemySystem {
         // Check explosion collision
         const mapCell = gameState.gameMap[gridPlacement.gridY] && gameState.gameMap[gridPlacement.gridY][gridPlacement.gridX];
         if (mapCell & TYPE.EXPLOSION) {
-          this.killEnemy(enemy, anim, render, gameState, i, engine, entityId);
+          this.killEnemy(enemy, health, anim, render, gameState, i, engine, entityId);
           continue;
         }
 
@@ -219,30 +220,30 @@ export class EnemySystem {
     return false;
   }
 
-  killEnemy(enemy, anim, render, gameState, idx, engine, entityId) {
-    enemy.alive = false;
+  killEnemy(enemy, health, anim, render, gameState, idx, engine, entityId) {
+    health.isDying = true;
     enemy.deathPhase = 1;
     enemy.deathWaitLeft = DEATH_WAIT_TICKS;
     anim.animationKey = null;
     render.sprite = null;
     render.spriteKey = enemy.type + '_DEATH';
 
-    // Remove from live list and award score immediately; move to dying list for animation
     gameState.score += enemy.points;
-    gameState.enemies.splice(idx, 1);
-    gameState.dyingEnemies.push(entityId);
 
-    if (gameState.enemies.length === 0) {
+    // There aren't any remaining enemies which are not busy dying
+    if (!gameState.enemies.some(id => !engine.getComponent(id, HEALTH)?.isDying)) {
       engine.getSingleton(SOUND).queue.push('pause');
     }
   }
 
   advanceDeathAnimations(engine, gameState, dt) {
-    for (let i = gameState.dyingEnemies.length - 1; i >= 0; i--) {
-      const entityId = gameState.dyingEnemies[i];
-      const enemy    = engine.getComponent(entityId, ENEMY_C);
-      const anim     = engine.getComponent(entityId, ANIMATION);
-      const render   = engine.getComponent(entityId, RENDER);
+    for (let i = gameState.enemies.length - 1; i >= 0; i--) {
+      const entityId = gameState.enemies[i];
+      const health   = engine.getComponent(entityId, HEALTH);
+      if (!health || !health.isDying) continue;
+      const enemy  = engine.getComponent(entityId, ENEMY_C);
+      const anim   = engine.getComponent(entityId, ANIMATION);
+      const render = engine.getComponent(entityId, RENDER);
       if (!enemy) continue;
       this.advanceDeath(enemy, anim, render, dt, gameState, i, engine, entityId);
     }
@@ -260,7 +261,7 @@ export class EnemySystem {
       }
     } else if (enemy.deathPhase === 2) {
       if (!anim.shouldAnimate) {
-        gameState.dyingEnemies.splice(idx, 1);
+        gameState.enemies.splice(idx, 1);
         engine.removeEntity(entityId);
       }
     }

@@ -12,7 +12,6 @@ export class GameStateComponent {
     this.flames = [];
     this.powerups = [];
     this.enemies = [];
-    this.dyingEnemies = [];
     this.softBlocks = [];
     this.door = null;
     this.gameTime = 0;

@@ -1,5 +1,5 @@
 import { BLOCK_WIDTH, BLOCK_HEIGHT, MAP_WIDTH, MAP_HEIGHT, TYPE, STATE } from '../ecs/config.js';
-import { TRANSFORM, VELOCITY, COLLISION, HEALTH, PLAYER, COLLECTIBLE, GRID_PLACEMENT, GAME_STATE } from '../components';
+import { TRANSFORM, VELOCITY, HEALTH, PLAYER, COLLECTIBLE, GRID_PLACEMENT, GAME_STATE } from '../components';
 
 export class CollisionSystem {
   constructor() {
@@ -73,7 +73,8 @@ export class CollisionSystem {
         }
       }
 
-      if (cell & TYPE.DOOR && !gameState.enemies.length && gameState.currentState === STATE.PLAYING) {
+      // There aren't any remaining enemies which are not busy dying
+      if (cell & TYPE.DOOR && !gameState.enemies.some(id => !engine.getComponent(id, HEALTH)?.isDying) && gameState.currentState === STATE.PLAYING) {
         gameState.toLevelClearState();
       }
     }
