@@ -1,4 +1,3 @@
-import { KEYMAP } from '../utils/KeyMap.js';
 import { VELOCITY, ANIMATION, PLAYER, HEALTH, GAME_STATE } from '../components';
 import { LevelSystem } from './LevelSystem.js';
 import { soundManager } from '../utils/SoundManager.js';
@@ -12,18 +11,18 @@ export class InputSystem {
     this.justPressed = new Set(); // cleared each tick after being consumed
 
     window.addEventListener('keydown', (ev) => {
-      if (!this.keyStates.has(ev.keyCode)) {
-        this.justPressed.add(ev.keyCode);
+      if (!this.keyStates.has(ev.code)) {
+        this.justPressed.add(ev.code);
       }
-      this.keyStates.add(ev.keyCode);
+      this.keyStates.add(ev.code);
     });
-    window.addEventListener('keyup', (ev) => this.keyStates.delete(ev.keyCode));
+    window.addEventListener('keyup', (ev) => this.keyStates.delete(ev.code));
   }
 
   apply(engine) {
     const gameState = engine.getSingleton(GAME_STATE);
 
-    if (gameState && gameState.currentState === STATE.TITLE && this.justPressed.has(KEYMAP.S)) {
+    if (gameState && gameState.currentState === STATE.TITLE && this.justPressed.has('KeyS')) {
       LevelSystem.removeAllLevelEntities(gameState, engine);
       gameState.currentLevel = 0;
       gameState.lives = DEFAULT_LIVES;
@@ -32,7 +31,7 @@ export class InputSystem {
       gameState.toLoadingState();
     }
 
-    if (this.justPressed.has(KEYMAP.P) && gameState &&
+    if (this.justPressed.has('KeyP') && gameState &&
         (gameState.currentState === STATE.PLAYING || gameState.currentState === STATE.PAUSED)) {
       const wasPaused = engine.paused;
       wasPaused ? gameState.toResumedState() : gameState.toPausedState();
@@ -69,10 +68,10 @@ export class InputSystem {
         // One axis at a time — no diagonal movement in Bomberman
         velocity.vx = 0;
         velocity.vy = 0;
-        if      (this.keyStates.has(KEYMAP.LEFT))  velocity.vx = -speed;
-        else if (this.keyStates.has(KEYMAP.RIGHT)) velocity.vx =  speed;
-        else if (this.keyStates.has(KEYMAP.UP))    velocity.vy = -speed;
-        else if (this.keyStates.has(KEYMAP.DOWN))  velocity.vy =  speed;
+        if      (this.keyStates.has('ArrowLeft'))  velocity.vx = -speed;
+        else if (this.keyStates.has('ArrowRight')) velocity.vx =  speed;
+        else if (this.keyStates.has('ArrowUp'))    velocity.vy = -speed;
+        else if (this.keyStates.has('ArrowDown'))  velocity.vy =  speed;
 
         const anim = engine.getComponent(id, ANIMATION);
         if (anim) {
@@ -91,8 +90,8 @@ export class InputSystem {
           }
         }
 
-        player.wantsToPlaceBomb = this.keyStates.has(KEYMAP.S);
-        player.wantsToDetonate  = this.justPressed.has(KEYMAP.D);
+        player.wantsToPlaceBomb = this.keyStates.has('KeyS');
+        player.wantsToDetonate  = this.justPressed.has('KeyD');
       }
     }
 
