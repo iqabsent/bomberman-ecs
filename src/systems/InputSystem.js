@@ -1,7 +1,6 @@
 import { VELOCITY, ANIMATION, PLAYER, HEALTH, GAME_STATE } from '../components';
-import { LevelSystem } from './LevelSystem.js';
 import { soundManager } from '../utils/SoundManager.js';
-import { STATE, DEFAULT_LIVES } from '../ecs/config.js';
+import { STATE } from '../ecs/config.js';
 
 export class InputSystem {
   constructor() {
@@ -21,17 +20,16 @@ export class InputSystem {
 
   apply(engine) {
     const gameState = engine.getSingleton(GAME_STATE);
+    if (!gameState) {
+      this.justPressed.clear();
+      return;
+    }
 
-    if (gameState && gameState.currentState === STATE.TITLE && this.justPressed.has('KeyS')) {
-      LevelSystem.removeAllLevelEntities(gameState, engine);
-      gameState.currentLevel = 0;
-      gameState.lives = DEFAULT_LIVES;
-      gameState.score = 0;
-      LevelSystem.resetLevelState(gameState);
+    if (gameState.currentState === STATE.TITLE && this.justPressed.has('KeyS')) {
       gameState.toLoadingState();
     }
 
-    if (this.justPressed.has('KeyP') && gameState &&
+    if (this.justPressed.has('KeyP') &&
         (gameState.currentState === STATE.PLAYING || gameState.currentState === STATE.PAUSED)) {
       const wasPaused = engine.paused;
       wasPaused ? gameState.toResumedState() : gameState.toPausedState();
@@ -44,7 +42,7 @@ export class InputSystem {
       }
     }
 
-    if (gameState && gameState.currentState === STATE.PLAYING && !engine.paused) {
+    if (gameState.currentState === STATE.PLAYING && !engine.paused) {
       for (const id of gameState.players) {
         const player = engine.getComponent(id, PLAYER);
         if (!player) continue;
