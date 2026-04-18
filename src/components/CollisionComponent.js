@@ -1,2 +1,6 @@
-// Tag component — marks entity as participating in tile-based collision resolution
-export class CollisionComponent {}
+export class CollisionComponent {
+  constructor({ canPass = 0 } = {}) {
+    this.canPass  = canPass; // bitfield of TYPE.* flags this entity can move through
+    this.blocked  = false;   // set by MovementSystem when velocity is clamped by a wall
+  }
+}

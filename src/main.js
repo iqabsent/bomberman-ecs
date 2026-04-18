@@ -4,7 +4,6 @@ import { GameStateComponent } from './components/GameStateComponent.js';
 import { SoundComponent } from './components/SoundComponent.js';
 import { BombSystem } from './systems/BombSystem.js';
 import { ExplosionSystem } from './systems/ExplosionSystem.js';
-import { CollisionSystem } from './systems/CollisionSystem.js';
 import { AnimationSystem } from './systems/AnimationSystem.js';
 import { EnemySystem } from './systems/EnemySystem.js';
 import { PlayerSystem } from './systems/PlayerSystem.js';
@@ -42,7 +41,6 @@ const init = async () => {
   engine.registerSystem('enemy',       new EnemySystem());
   engine.registerSystem('timer',       new TimerSystem());
   engine.registerSystem('input',       new InputSystem());
-  engine.registerSystem('collision',   new CollisionSystem());
   engine.registerSystem('collectible', new CollectibleSystem());
   engine.registerSystem('bomb',        new BombSystem());
   engine.registerSystem('explosion',   new ExplosionSystem());

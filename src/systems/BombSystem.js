@@ -1,4 +1,4 @@
-import { BLOCK_WIDTH, BLOCK_HEIGHT, TYPE, DIRECTIONS, BOMB_CHAIN_FUSE_TICKS } from '../ecs/config.js';
+import { BLOCK_WIDTH, BLOCK_HEIGHT, TYPE, DIRECTIONS, BOMB_CHAIN_FUSE_TICKS, DESTROY } from '../ecs/config.js';
 import { BOMB, DESTROYABLE, FUSE, GAME_STATE, GRID_PLACEMENT, PLAYER, SOUND, TRANSFORM } from '../components';
 import { createBomb } from '../entities/Bomb.js';
 import { createFlame } from '../entities/Flame.js';
@@ -31,7 +31,7 @@ export class BombSystem {
       if (!bomb || !fuse) continue;
 
       // Chain hit — shorten fuse and mark as chained so canDetonate can't block it
-      if (destroyable && destroyable.burning && !bomb.chained) {
+      if (destroyable && destroyable.destroyState === DESTROY.PENDING && !bomb.chained) {
         bomb.chained = true;
         fuse.ticks = BOMB_CHAIN_FUSE_TICKS;
       }
@@ -128,7 +128,7 @@ export class BombSystem {
           });
           if (softBlockId) {
             const sbDestroyable = engine.getComponent(softBlockId, DESTROYABLE);
-            if (sbDestroyable) sbDestroyable.burning = true;
+            if (sbDestroyable && !sbDestroyable.destroyState) sbDestroyable.destroyState = DESTROY.PENDING;
           }
           hit = true;
           continue;
@@ -154,7 +154,7 @@ export class BombSystem {
           });
           if (chainId) {
             const chainDestroyable = engine.getComponent(chainId, DESTROYABLE);
-            if (chainDestroyable) chainDestroyable.burning = true;
+            if (chainDestroyable && !chainDestroyable.destroyState) chainDestroyable.destroyState = DESTROY.PENDING;
           }
           hit = true;
         }

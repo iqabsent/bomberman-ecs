@@ -1,5 +1,5 @@
 export const TEST_MODE = true;
-export const DEBUG_MODE = false;
+export const DEBUG_MODE = true;
 
 // Game Type Enums
 export const TYPE = {
@@ -42,6 +42,12 @@ export const SPAWN = {
   GAME_SPAWN: 'GAME_SPAWN',   // new game or restart from title
   LEVEL_SPAWN: 'LEVEL_SPAWN', // advancing to a new level
   RESPAWN: 'RESPAWN'          // retry same level after death
+};
+
+export const DESTROY = {
+  PENDING:    'PENDING',    // destruction triggered, sequence not yet started
+  DESTROYING: 'DESTROYING', // destruction animation running
+  DESTROYED:  'DESTROYED'   // animation complete, ready for entity removal
 };
 
 export const POWER = {

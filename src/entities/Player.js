@@ -19,8 +19,8 @@ export function createPlayer(engine) {
   engine.addComponent(id, new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_PLAYER, animationKey: 'MAN_DOWN' }));
   engine.addComponent(id, new PlayerComponent());
   engine.addComponent(id, new HealthComponent());
-  engine.addComponent(id, new GridPlacementComponent({ gridX: 1, gridY: 1 }));
   engine.addComponent(id, new CollisionComponent());
+  engine.addComponent(id, new GridPlacementComponent({ gridX: 1, gridY: 1 }));
 
   return id;
 }

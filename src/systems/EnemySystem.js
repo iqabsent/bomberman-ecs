@@ -1,8 +1,8 @@
 import {
   BLOCK_WIDTH, BLOCK_HEIGHT, MAP_WIDTH, MAP_HEIGHT,
-  TYPE, DIRECTIONS, ENEMY, LEVEL, STATE
+  TYPE, DIRECTIONS, ENEMY, LEVEL, STATE, DESTROY
 } from '../ecs/config.js';
-import { GAME_STATE, TRANSFORM, ANIMATION, RENDER, ENEMY as ENEMY_C, AI, HEALTH, GRID_PLACEMENT, SOUND } from '../components';
+import { GAME_STATE, TRANSFORM, ANIMATION, RENDER, ENEMY as ENEMY_C, HEALTH, VELOCITY, COLLISION, DESTROYABLE, GRID_PLACEMENT, SOUND } from '../components';
 import { createEnemy as createEnemyEntity } from '../entities/Enemy.js';
 
 // Ticks before death animation starts — original: queue('startDeathAnimation', 5) * 18
@@ -35,7 +35,14 @@ export class EnemySystem {
     }
 
     if (gameState.currentState === STATE.PLAYING || gameState.currentState === STATE.LEVEL_CLEAR) {
-      this.advanceDeathAnimations(engine, gameState, dt);
+      for (let i = gameState.enemies.length - 1; i >= 0; i--) {
+        const entityId    = gameState.enemies[i];
+        const destroyable = engine.getComponent(entityId, DESTROYABLE);
+        if (destroyable?.destroyState === DESTROY.DESTROYED) {
+          gameState.enemies.splice(i, 1);
+          engine.removeEntity(entityId);
+        }
+      }
     }
 
     if (gameState.currentState === STATE.PLAYING) {
@@ -89,14 +96,14 @@ export class EnemySystem {
 
         const transform     = engine.getComponent(entityId, TRANSFORM);
         const gridPlacement = engine.getComponent(entityId, GRID_PLACEMENT);
-        const ai            = engine.getComponent(entityId, AI);
         const anim          = engine.getComponent(entityId, ANIMATION);
         const render        = engine.getComponent(entityId, RENDER);
+        const destroyable   = engine.getComponent(entityId, DESTROYABLE);
 
         // Check explosion collision
         const mapCell = gameState.gameMap[gridPlacement.gridY] && gameState.gameMap[gridPlacement.gridY][gridPlacement.gridX];
         if (mapCell & TYPE.EXPLOSION) {
-          this.killEnemy(enemy, health, anim, render, gameState, i, engine, entityId);
+          this.killEnemy(enemy, health, anim, render, destroyable, gameState, engine);
           continue;
         }
 
@@ -107,160 +114,81 @@ export class EnemySystem {
           }
         }
 
-        // AI — decide direction
-        this.updateAI(enemy, ai, transform, gridPlacement, gameState, dt, anim);
+        const velocity  = engine.getComponent(entityId, VELOCITY);
+        const collision = engine.getComponent(entityId, COLLISION);
 
-        // Move
-        this.moveEnemy(ai, transform, gridPlacement, gameState, dt);
+        if (collision.blocked) {
+          enemy.speed = 0;
+          enemy.recentlyActed = false;
+        }
+
+        this.updateAI(enemy, transform, gridPlacement, gameState, dt, anim, velocity, collision);
       }
     }
   }
 
-  updateAI(enemy, ai, transform, gridPlacement, gameState, dt, anim) {
-    if (ai.recentlyActed) {
-      ai.debounceLeft -= dt;
-      if (ai.debounceLeft <= 0) ai.recentlyActed = false;
+  updateAI(enemy, transform, gridPlacement, gameState, dt, anim, velocity, collision) {
+    if (enemy.recentlyActed) {
+      enemy.debounceLeft -= dt;
+      if (enemy.debounceLeft <= 0) enemy.recentlyActed = false;
     }
 
     const cellX = gridPlacement.gridX * BLOCK_WIDTH;
     const cellY = gridPlacement.gridY * BLOCK_HEIGHT;
-    const aligned = Math.abs((cellX - transform.x) + (cellY - transform.y)) <= ai.speed;
+    const aligned = Math.abs((cellX - transform.x) + (cellY - transform.y)) <= enemy.speed;
 
-    const shouldAct = !ai.speed
-      || (!ai.recentlyActed && aligned && Math.random() < ai.actionFrequency);
+    const shouldAct = !enemy.speed
+      || (!enemy.recentlyActed && aligned && Math.random() < enemy.actionFrequency);
 
     if (shouldAct) {
-      this.pickDirection(enemy, ai, gridPlacement, gameState, anim);
-      ai.recentlyActed = true;
-      ai.debounceLeft = ai.framesBetweenActions;
+      this.pickDirection(enemy, velocity, collision, gridPlacement, gameState, anim);
+      enemy.recentlyActed = true;
+      enemy.debounceLeft = enemy.framesBetweenActions;
     }
   }
 
-  pickDirection(enemy, ai, gridPlacement, gameState, anim) {
+  pickDirection(enemy, velocity, collision, gridPlacement, gameState, anim) {
     const options = [];
     for (const [dx, dy] of DIRECTIONS) {
-      if (!this.isCellBlocked(gridPlacement.gridX + dx, gridPlacement.gridY + dy, ai, gameState)) {
-        options.push([dx, dy]);
-      }
+      const gx = gridPlacement.gridX + dx;
+      const gy = gridPlacement.gridY + dy;
+      if (gx < 0 || gx >= MAP_WIDTH || gy < 0 || gy >= MAP_HEIGHT) continue;
+      const cell = gameState.gameMap[gy]?.[gx];
+      if (cell & TYPE.HARD_BLOCK) continue;
+      if (cell & TYPE.SOFT_BLOCK && !(collision.canPass & TYPE.SOFT_BLOCK)) continue;
+      if (cell & TYPE.BOMB) continue;
+      options.push([dx, dy]);
     }
 
     if (!options.length) {
-      ai.dirX = 0;
-      ai.dirY = 0;
-      ai.speed = 0;
+      enemy.speed = 0;
+      velocity.vx = 0;
+      velocity.vy = 0;
       return;
     }
 
     const [dx, dy] = options[Math.floor(Math.random() * options.length)];
-    ai.dirX = dx;
-    ai.dirY = dy;
-    ai.speed = ENEMY[enemy.type].movement_speed;
+    enemy.speed = ENEMY[enemy.type].movement_speed;
+    velocity.vx = dx * enemy.speed;
+    velocity.vy = dy * enemy.speed;
 
     anim.animationKey = (dx < 0 || dy > 0) ? enemy.type + '_LD' : enemy.type + '_RU';
     anim.loop = true;
   }
 
-  moveEnemy(ai, transform, gridPlacement, gameState, dt) {
-    if (!ai.dirX && !ai.dirY) return;
-
-    const delta = ai.speed * dt;
-    const cellX = gridPlacement.gridX * BLOCK_WIDTH;
-    const cellY = gridPlacement.gridY * BLOCK_HEIGHT;
-
-    if (ai.dirX !== 0) {
-      const errY = cellY - transform.y;
-      const corrY = errY !== 0 ? Math.sign(errY) * Math.min(Math.abs(errY), delta) : 0;
-
-      const tgx = gridPlacement.gridX + ai.dirX;
-      if (this.isCellBlocked(tgx, gridPlacement.gridY, ai, gameState)) {
-        const targetCellX = tgx * BLOCK_WIDTH;
-        if (Math.abs(transform.x + ai.dirX * delta - targetCellX) < BLOCK_WIDTH) {
-          transform.x = cellX;
-          gridPlacement.gridX = Math.round(transform.x / BLOCK_WIDTH);
-          ai.dirX = 0;
-          ai.speed = 0;
-          return;
-        }
-      }
-      transform.x += ai.dirX * delta;
-      transform.y += corrY;
-
-    } else {
-      const errX = cellX - transform.x;
-      const corrX = errX !== 0 ? Math.sign(errX) * Math.min(Math.abs(errX), delta) : 0;
-
-      const tgy = gridPlacement.gridY + ai.dirY;
-      if (this.isCellBlocked(gridPlacement.gridX, tgy, ai, gameState)) {
-        const targetCellY = tgy * BLOCK_HEIGHT;
-        if (Math.abs(transform.y + ai.dirY * delta - targetCellY) < BLOCK_HEIGHT) {
-          transform.y = cellY;
-          gridPlacement.gridY = Math.round(transform.y / BLOCK_HEIGHT);
-          ai.dirY = 0;
-          ai.speed = 0;
-          return;
-        }
-      }
-      transform.y += ai.dirY * delta;
-      transform.x += corrX;
-    }
-
-    gridPlacement.gridX = Math.round(transform.x / BLOCK_WIDTH);
-    gridPlacement.gridY = Math.round(transform.y / BLOCK_HEIGHT);
-  }
-
-  isCellBlocked(gx, gy, ai, gameState) {
-    if (gx < 0 || gx >= MAP_WIDTH || gy < 0 || gy >= MAP_HEIGHT) return true;
-    const cell = gameState.gameMap[gy] && gameState.gameMap[gy][gx];
-    if (cell & TYPE.HARD_BLOCK) return true;
-    if (cell & TYPE.SOFT_BLOCK && !(ai.canPass & TYPE.SOFT_BLOCK)) return true;
-    if (cell & TYPE.BOMB) return true;
-    return false;
-  }
-
-  killEnemy(enemy, health, anim, render, gameState, idx, engine, entityId) {
+  killEnemy(enemy, health, anim, render, destroyable, gameState, engine) {
     health.isDying = true;
-    enemy.deathPhase = 1;
-    enemy.deathWaitLeft = DEATH_WAIT_TICKS;
-    anim.animationKey = null;
+    destroyable.destroyState = DESTROY.DESTROYING;
     render.sprite = null;
     render.spriteKey = enemy.type + '_DEATH';
+    anim.animationKey = 'ENEMY_DEATH';
+    anim.loop = false;
+    anim.delay = DEATH_WAIT_TICKS;
 
     gameState.score += enemy.points;
 
-    // There aren't any remaining enemies which are not busy dying
     if (!gameState.enemies.some(id => !engine.getComponent(id, HEALTH)?.isDying)) {
       engine.getSingleton(SOUND).queue.push('pause');
-    }
-  }
-
-  advanceDeathAnimations(engine, gameState, dt) {
-    for (let i = gameState.enemies.length - 1; i >= 0; i--) {
-      const entityId = gameState.enemies[i];
-      const health   = engine.getComponent(entityId, HEALTH);
-      if (!health || !health.isDying) continue;
-      const enemy  = engine.getComponent(entityId, ENEMY_C);
-      const anim   = engine.getComponent(entityId, ANIMATION);
-      const render = engine.getComponent(entityId, RENDER);
-      if (!enemy) continue;
-      this.advanceDeath(enemy, anim, render, dt, gameState, i, engine, entityId);
-    }
-  }
-
-  advanceDeath(enemy, anim, render, dt, gameState, idx, engine, entityId) {
-    if (enemy.deathPhase === 1) {
-      enemy.deathWaitLeft -= dt;
-      if (enemy.deathWaitLeft <= 0) {
-        enemy.deathPhase = 2;
-        render.spriteKey = null;
-        anim.animationKey = 'ENEMY_DEATH';
-        anim.loop = false;
-        anim.shouldAnimate = true;
-      }
-    } else if (enemy.deathPhase === 2) {
-      if (!anim.shouldAnimate) {
-        gameState.enemies.splice(idx, 1);
-        engine.removeEntity(entityId);
-      }
     }
   }
 

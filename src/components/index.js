@@ -1,4 +1,3 @@
-export const AI             = 'AIComponent';
 export const ANIMATION      = 'AnimationComponent';
 export const BOMB           = 'BombComponent';
 export const COLLECTIBLE    = 'CollectibleComponent';
@@ -11,7 +10,6 @@ export const GAME_STATE     = 'GameStateComponent';
 export const GRID_PLACEMENT = 'GridPlacementComponent';
 export const HEALTH         = 'HealthComponent';
 export const PLAYER         = 'PlayerComponent';
-export const POWER_UP       = 'PowerUpComponent';
 export const RENDER         = 'RenderComponent';
 export const SOUND          = 'SoundComponent';
 export const TRANSFORM      = 'TransformComponent';

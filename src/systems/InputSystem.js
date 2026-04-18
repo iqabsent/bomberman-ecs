@@ -1,4 +1,4 @@
-import { VELOCITY, ANIMATION, PLAYER, HEALTH, GAME_STATE } from '../components';
+import { VELOCITY, ANIMATION, PLAYER, HEALTH, GAME_STATE, SOUND } from '../components';
 import { soundManager } from '../utils/SoundManager.js';
 import { STATE } from '../ecs/config.js';
 
@@ -75,6 +75,11 @@ export class InputSystem {
         if (anim) {
           const moving = velocity.vx !== 0 || velocity.vy !== 0;
           anim.shouldAnimate = moving;
+
+          if (moving && anim.frame === 1 && anim.ticks === 0) {
+            const sound = engine.getSingleton(SOUND);
+            if (sound) sound.queue.push(velocity.vx !== 0 ? 'step_lr' : 'step_ud');
+          }
 
           const dirChanged = velocity.vx !== prevVx || velocity.vy !== prevVy;
           const invChanged = (player.invincibilityTimer > 0) !== (anim.animationKey?.includes('_I_'));

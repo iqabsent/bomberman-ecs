@@ -1,4 +1,4 @@
-import { TYPE } from '../ecs/config.js';
+import { TYPE, DESTROY } from '../ecs/config.js';
 import { GAME_STATE, FLAME, FUSE, GRID_PLACEMENT, DESTROYABLE, HEALTH } from '../components';
 
 export class ExplosionSystem {
@@ -26,17 +26,17 @@ export class ExplosionSystem {
         continue;
       }
 
-      // Set burning on any destroyable entity occupying this flame cell
+      // Mark any destroyable entity on this flame cell for destruction
       for (const id of engine.entities) {
         const destroyable = engine.getComponent(id, DESTROYABLE);
-        if (!destroyable || destroyable.burning) continue;
+        if (!destroyable || destroyable.destroyState) continue;
         const entityPlacement = engine.getComponent(id, GRID_PLACEMENT);
         if (!entityPlacement || entityPlacement.gridX !== flamePlacement.gridX || entityPlacement.gridY !== flamePlacement.gridY) continue;
 
         const health = engine.getComponent(id, HEALTH);
         if (health && health.isDying) continue;
 
-        destroyable.burning = true;
+        destroyable.destroyState = DESTROY.PENDING;
       }
     }
 

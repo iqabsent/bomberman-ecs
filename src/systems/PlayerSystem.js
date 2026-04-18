@@ -1,5 +1,5 @@
 import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPAWN, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER, TYPE } from '../ecs/config.js';
-import { GRID_PLACEMENT, GAME_STATE, TRANSFORM, VELOCITY, ANIMATION, PLAYER, HEALTH, SOUND } from '../components';
+import { GRID_PLACEMENT, GAME_STATE, TRANSFORM, VELOCITY, ANIMATION, PLAYER, HEALTH, SOUND, COLLECTIBLE, COLLISION } from '../components';
 
 export class PlayerSystem {
   constructor() {
@@ -29,9 +29,10 @@ export class PlayerSystem {
       const anim          = engine.getComponent(id, ANIMATION);
       const health        = engine.getComponent(id, HEALTH);
       const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
-      PlayerSystem.spawnPlayer(player, transform, velocity, anim, health, gridPlacement);
+      const collision     = engine.getComponent(id, COLLISION);
+      PlayerSystem.spawnPlayer(player, transform, velocity, anim, health, gridPlacement, collision);
       if (player.pendingSpawn === SPAWN.GAME_SPAWN) {
-        PlayerSystem.resetPlayerStats(player);
+        PlayerSystem.resetPlayerStats(player, collision);
         gameState.playerInvincible = false;
       }
       player.pendingSpawn = null;
@@ -47,21 +48,24 @@ export class PlayerSystem {
     }
 
     if (gameState.currentState === STATE.PLAYING) {
+      const { gameMap } = gameState;
+
       for (const id of gameState.players) {
         const player = engine.getComponent(id, PLAYER);
         if (!player) continue;
-
-        if (player.pendingPowerup) {
-          if (player.pendingPowerup === 'INVINCIBLE') gameState.playerInvincible = true;
-          PlayerSystem.applyPowerup(player, player.pendingPowerup);
-          player.pendingPowerup = null;
-        }
 
         const health    = engine.getComponent(id, HEALTH);
         const anim      = engine.getComponent(id, ANIMATION);
         const transform = engine.getComponent(id, TRANSFORM);
         const velocity  = engine.getComponent(id, VELOCITY);
+        const collision = engine.getComponent(id, COLLISION);
         if (!health || !anim || !transform || !velocity) continue;
+
+        if (player.pendingPowerup) {
+          if (player.pendingPowerup === 'INVINCIBLE') gameState.playerInvincible = true;
+          PlayerSystem.applyPowerup(player, collision, player.pendingPowerup);
+          player.pendingPowerup = null;
+        }
 
         // Tick invincibility down every frame regardless of explosions
         if (player.invincibilityTimer > 0) {
@@ -89,13 +93,41 @@ export class PlayerSystem {
         // Detect explosion contact via map tile — consistent with EnemySystem's approach
         if (!health.isDying && !health.immune) {
           const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
-          if (gridPlacement && gameState.gameMap) {
-            const cell = gameState.gameMap[gridPlacement.gridY]?.[gridPlacement.gridX];
+          if (gridPlacement && gameMap) {
+            const cell = gameMap[gridPlacement.gridY]?.[gridPlacement.gridX];
             if (cell & TYPE.EXPLOSION) health.isDying = true;
           }
         }
 
-        if (!health.isDying) continue;
+        if (!health.isDying) {
+          // Cell overlap checks — power-up pickup and door
+          const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
+          if (gridPlacement && gameMap) {
+            const gridX = gridPlacement.gridX;
+            const gridY = gridPlacement.gridY;
+            const cell  = gameMap[gridY]?.[gridX];
+
+            if (cell & TYPE.POWER) {
+              const entityId = gameState.powerups.find(pid => {
+                const gp = engine.getComponent(pid, GRID_PLACEMENT);
+                return gp && gp.gridX === gridX && gp.gridY === gridY;
+              });
+              if (entityId) {
+                const collectible = engine.getComponent(entityId, COLLECTIBLE);
+                if (collectible && !collectible.pickedUpBy) {
+                  collectible.pickedUpBy = id;
+                  gameState.gameMap[gridY][gridX] &= ~TYPE.POWER;
+                }
+              }
+            }
+
+            if (cell & TYPE.DOOR && !gameState.enemies.some(eid => !engine.getComponent(eid, HEALTH)?.isDying)) {
+              gameState.toLevelClearState();
+            }
+          }
+
+          continue;
+        }
 
         // First frame of death — kick off the animation
         if (!health.deathAnimStarted) {
@@ -128,7 +160,7 @@ export class PlayerSystem {
     }
   }
 
-  static spawnPlayer(player, transform, velocity, anim, health, gridPlacement) {
+  static spawnPlayer(player, transform, velocity, anim, health, gridPlacement, collision) {
     if (!transform || !velocity || !anim) return;
     transform.x = BLOCK_WIDTH;
     transform.y = BLOCK_HEIGHT;
@@ -142,28 +174,27 @@ export class PlayerSystem {
     anim.shouldAnimate = false;
   }
 
-  static applyPowerup(player, type) {
+  static applyPowerup(player, collision, type) {
     switch (type) {
       case 'FLAME':      player.bombYield = Math.min(player.bombYield + 1, MAX_YIELD); break;
       case 'BOMB':       player.maxBombs  = Math.min(player.maxBombs  + 1, MAX_BOMBS); break;
       case 'SPEED':      player.movementSpeed = SPEED.FAST; break;
       case 'DETONATE':   player.canDetonate = true; break;
-      case 'PASS_BOMB':  player.canPassBomb = true; break;
-      case 'PASS_WALL':  player.canPassWall = true; break;
+      case 'PASS_BOMB':  if (collision) collision.canPass |= TYPE.BOMB; break;
+      case 'PASS_WALL':  if (collision) collision.canPass |= TYPE.SOFT_BLOCK; break;
       case 'FIREPROOF':  player.fireproof = true; break;
       case 'INVINCIBLE': player.invincibilityTimer = INVINCIBILITY_TIMER; break;
     }
   }
 
-  static resetPlayerStats(player) {
+  static resetPlayerStats(player, collision) {
     player.maxBombs = 1;
     player.bombYield = 1;
     player.activeBombs = 0;
     player.movementSpeed = SPEED.NORMAL;
     player.canDetonate = false;
-    player.canPassBomb = false;
-    player.canPassWall = false;
     player.fireproof = false;
     player.invincibilityTimer = 0;
+    if (collision) collision.canPass = 0;
   }
 }

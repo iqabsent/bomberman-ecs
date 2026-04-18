@@ -32,6 +32,7 @@ export class Engine {
     this.components.delete(entityId);
   }
 
+
   registerSingleton(component) {
     this.singletons.set(component.constructor.name, component);
   }

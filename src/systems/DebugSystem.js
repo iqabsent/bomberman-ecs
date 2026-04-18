@@ -1,5 +1,5 @@
-import { STATE } from '../ecs/config.js';
-import { GAME_STATE, ENEMY, TRANSFORM, ANIMATION, PLAYER, HEALTH } from '../components';
+import { STATE, TYPE } from '../ecs/config.js';
+import { GAME_STATE, ENEMY, TRANSFORM, ANIMATION, PLAYER, HEALTH, COLLISION } from '../components';
 
 const STATE_NAMES = Object.fromEntries(Object.entries(STATE).map(([k, v]) => [v, k]));
 
@@ -11,20 +11,29 @@ export class DebugSystem {
     this.name = 'debug';
     this.runsWhenPaused = true;
     this.el = document.getElementById('debug');
+    this._dtHistory = [];
   }
 
-  apply(engine) {
+  apply(engine, dt) {
     if (!this.el) return;
 
     const gameState = engine.getSingleton(GAME_STATE);
 
-    const playerId = gameState?.players[0];
+    const playerId  = gameState?.players[0];
     const player    = playerId ? engine.getComponent(playerId, PLAYER)    : null;
     const health    = playerId ? engine.getComponent(playerId, HEALTH)    : null;
     const transform = playerId ? engine.getComponent(playerId, TRANSFORM) : null;
     const anim      = playerId ? engine.getComponent(playerId, ANIMATION) : null;
+    const collision = playerId ? engine.getComponent(playerId, COLLISION) : null;
+
+    this._dtHistory.push(dt);
+    if (this._dtHistory.length > 30) this._dtHistory.shift();
+    const avgDt = this._dtHistory.reduce((s, v) => s + v, 0) / this._dtHistory.length;
+    const fps   = Math.round(60 / avgDt);
+    const ms    = (avgDt * (1000 / 60)).toFixed(1);
 
     const lines = [];
+    lines.push(`<b>PERF &nbsp;</b> ` + val('fps', fps) + ' &nbsp; ' + val('ms', ms));
 
     if (gameState) {
       const stateName = STATE_NAMES[gameState.currentState] ?? gameState.currentState;
@@ -61,8 +70,8 @@ export class DebugSystem {
         flag('isDying', health?.isDying) + ' &nbsp; ' +
         flag('deathAnimStarted', health?.deathAnimStarted) + ' &nbsp; ' +
         flag('canDetonate', player?.canDetonate) + ' &nbsp; ' +
-        flag('canPassBomb', player?.canPassBomb) + ' &nbsp; ' +
-        flag('canPassWall', player?.canPassWall) + ' &nbsp; ' +
+        flag('canPassBomb', collision?.canPass & TYPE.BOMB) + ' &nbsp; ' +
+        flag('canPassWall', collision?.canPass & TYPE.SOFT_BLOCK) + ' &nbsp; ' +
         flag('fireproof', player?.fireproof)
       );
     }

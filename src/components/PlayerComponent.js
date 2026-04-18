@@ -9,8 +9,6 @@ export class PlayerComponent {
     this.wantsToDetonate = false;
     this.movementSpeed = SPEED.NORMAL;
     this.canDetonate = false;
-    this.canPassBomb = false;
-    this.canPassWall = false;
     this.fireproof = false;
     this.invincibilityTimer = 0;
     this.pendingSpawn = null;   // set to a SPAWN value; PlayerSystem handles the reset and clears it

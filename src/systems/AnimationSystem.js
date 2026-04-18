@@ -1,4 +1,5 @@
-import { ANIMATION, RENDER } from '../components';
+import { DESTROY } from '../ecs/config.js';
+import { ANIMATION, RENDER, DESTROYABLE } from '../components';
 import { assetManager } from '../utils/AssetManager.js';
 
 export class AnimationSystem {
@@ -23,6 +24,18 @@ export class AnimationSystem {
         animation._prevAnimationKey = animation.animationKey;
       }
 
+      // Tick pre-animation delay; when it expires, start playing
+      if (animation.delay > 0) {
+        animation.delay -= dt;
+        if (animation.delay <= 0) {
+          animation.delay = 0;
+          animation.frame = 0;
+          animation.ticks = 0;
+          animation.shouldAnimate = true;
+        }
+        continue;
+      }
+
       if (animation.shouldAnimate) {
         animation.ticks += dt;
         if (animation.ticks >= animation.ticksPerFrame) {
@@ -34,6 +47,10 @@ export class AnimationSystem {
             } else {
               animation.frame = frames.length - 1;
               animation.shouldAnimate = false;
+              const destroyable = engine.getComponent(id, DESTROYABLE);
+              if (destroyable && destroyable.destroyState === DESTROY.DESTROYING) {
+                destroyable.destroyState = DESTROY.DESTROYED;
+              }
             }
           }
         }
