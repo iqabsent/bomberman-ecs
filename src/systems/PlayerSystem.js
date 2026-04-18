@@ -1,5 +1,5 @@
-import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPAWN, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER } from '../ecs/config.js';
-import { GRID_PLACEMENT, GAME_STATE, TRANSFORM, VELOCITY, ANIMATION, PLAYER, HEALTH, DESTROYABLE, SOUND } from '../components';
+import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPAWN, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER, TYPE } from '../ecs/config.js';
+import { GRID_PLACEMENT, GAME_STATE, TRANSFORM, VELOCITY, ANIMATION, PLAYER, HEALTH, SOUND } from '../components';
 
 export class PlayerSystem {
   constructor() {
@@ -9,6 +9,15 @@ export class PlayerSystem {
   apply(engine, dt) {
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
+
+    // Flag dying players for respawn — arriving from PLAYER_DIED with health.isDying still set
+    if (gameState.currentState === STATE.LEVEL_START) {
+      for (const id of gameState.players) {
+        const player = engine.getComponent(id, PLAYER);
+        const health = engine.getComponent(id, HEALTH);
+        if (player && health && health.isDying) player.pendingSpawn = SPAWN.RESPAWN;
+      }
+    }
 
     // Process pending spawns regardless of game state — may be set during LOADING or LEVEL_START
     for (const id of gameState.players) {
@@ -21,7 +30,10 @@ export class PlayerSystem {
       const health        = engine.getComponent(id, HEALTH);
       const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
       PlayerSystem.spawnPlayer(player, transform, velocity, anim, health, gridPlacement);
-      if (player.pendingSpawn === SPAWN.GAME_SPAWN) PlayerSystem.resetPlayerStats(player);
+      if (player.pendingSpawn === SPAWN.GAME_SPAWN) {
+        PlayerSystem.resetPlayerStats(player);
+        gameState.playerInvincible = false;
+      }
       player.pendingSpawn = null;
     }
 
@@ -40,6 +52,7 @@ export class PlayerSystem {
         if (!player) continue;
 
         if (player.pendingPowerup) {
+          if (player.pendingPowerup === 'INVINCIBLE') gameState.playerInvincible = true;
           PlayerSystem.applyPowerup(player, player.pendingPowerup);
           player.pendingPowerup = null;
         }
@@ -55,18 +68,31 @@ export class PlayerSystem {
           player.invincibilityTimer -= dt * (1000 / 60);
           if (player.invincibilityTimer < 0) player.invincibilityTimer = 0;
 
-          // Swap back to normal animation set the moment invincibility expires
-          if (player.invincibilityTimer === 0 && anim.animationKey?.includes('_I_')) {
+          // Timer just expired this tick — swap animation set back and signal MusicSystem
+          if (player.invincibilityTimer === 0) {
             anim.animationKey = anim.animationKey.replace('_I_', '_');
             anim.shouldAnimate = true; // force one tick so AnimationSystem registers the key change
+            gameState.playerInvincible = false;
           }
         }
 
-        // Translate destroyable.burning → health.isDying
-        const destroyable = engine.getComponent(id, DESTROYABLE);
-        if (destroyable && destroyable.burning && !health.isDying) {
-          health.isDying = true;
-          destroyable.burning = false;
+        // Maintain immunity flag for ExplosionSystem
+        health.immune = player.invincibilityTimer > 0 || player.fireproof;
+
+        // Handle pending player death from enemy collision (set by EnemySystem)
+        // Only invincibility protects against enemies — fireproof does not
+        if (gameState.pendingPlayerDeath === id) {
+          if (!health.isDying && player.invincibilityTimer <= 0) health.isDying = true;
+          gameState.pendingPlayerDeath = null;
+        }
+
+        // Detect explosion contact via map tile — consistent with EnemySystem's approach
+        if (!health.isDying && !health.immune) {
+          const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
+          if (gridPlacement && gameState.gameMap) {
+            const cell = gameState.gameMap[gridPlacement.gridY]?.[gridPlacement.gridX];
+            if (cell & TYPE.EXPLOSION) health.isDying = true;
+          }
         }
 
         if (!health.isDying) continue;
@@ -91,13 +117,14 @@ export class PlayerSystem {
         if (gameState.lives > 0) {
           velocity.vx = 0;
           velocity.vy = 0;
-          // Leave health.isDying = true — LevelSystem flags RESPAWN when LEVEL_START begins
+          // Leave health.isDying = true — PlayerSystem flags RESPAWN when LEVEL_START begins
           gameState.toPlayerDiedState();
         } else {
           // Game over — leave isDying true so input/collision stay disabled
           gameState.toGameOverState();
         }
       }
+
     }
   }
 
@@ -109,7 +136,7 @@ export class PlayerSystem {
     velocity.vx = 0;
     velocity.vy = 0;
     player.activeBombs = 0;
-    if (health) { health.isDying = false; health.deathAnimStarted = false; }
+    if (health) { health.isDying = false; health.deathAnimStarted = false; health.immune = player.invincibilityTimer > 0 || player.fireproof; }
     anim.animationKey = player.invincibilityTimer > 0 ? 'MAN_I_DOWN' : 'MAN_DOWN';
     anim.loop = true;
     anim.shouldAnimate = false;

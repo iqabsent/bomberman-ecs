@@ -1,5 +1,5 @@
 import { STATE } from '../ecs/config.js';
-import { GAME_STATE, PLAYER } from '../components';
+import { GAME_STATE } from '../components';
 import { soundManager } from '../utils/SoundManager.js';
 
 export class MusicSystem {
@@ -73,12 +73,7 @@ export class MusicSystem {
         break;
 
       case STATE.PLAYING: {
-        let isInvincible = false;
-        for (const id of gameState.players) {
-          const player = engine.getComponent(id, PLAYER);
-          if (player && player.invincibilityTimer > 0) { isInvincible = true; break; }
-        }
-        if (isInvincible) {
+        if (gameState.playerInvincible) {
           desiredKey = 'specialPowerUpGet';
         } else if (gameState.levelPowerCollected) {
           desiredKey = 'powerUpGet';

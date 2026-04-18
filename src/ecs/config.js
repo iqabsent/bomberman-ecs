@@ -297,5 +297,5 @@ export const ASSET_PATH = 'images/';
 // In TEST_MODE, reduce every level to a single BALOM — power-ups unchanged
 if (TEST_MODE) {
   for (const lvl of LEVEL) lvl.enemies = { BALOM: 1 };
-  LEVEL[4].power = 'INVINCIBLE';
+  LEVEL[4].power = 'INVINCIBLE'; // test power-up animations earlier
 }

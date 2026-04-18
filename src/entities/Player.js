@@ -5,7 +5,6 @@ import { AnimationComponent } from '../components/AnimationComponent.js';
 import { PlayerComponent } from '../components/PlayerComponent.js';
 import { HealthComponent } from '../components/HealthComponent.js';
 import { CollisionComponent } from '../components/CollisionComponent.js';
-import { DestroyableComponent } from '../components/DestroyableComponent.js';
 import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
 import { BLOCK_WIDTH, BLOCK_HEIGHT, RENDER_LAYER_PLAYER, ANIM_TICKS_PER_FRAME_PLAYER } from '../ecs/config.js';
 
@@ -22,7 +21,6 @@ export function createPlayer(engine) {
   engine.addComponent(id, new HealthComponent());
   engine.addComponent(id, new GridPlacementComponent({ gridX: 1, gridY: 1 }));
   engine.addComponent(id, new CollisionComponent());
-  engine.addComponent(id, new DestroyableComponent());
 
   return id;
 }

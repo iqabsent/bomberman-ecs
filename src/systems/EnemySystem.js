@@ -2,7 +2,7 @@ import {
   BLOCK_WIDTH, BLOCK_HEIGHT, MAP_WIDTH, MAP_HEIGHT,
   TYPE, DIRECTIONS, ENEMY, LEVEL, STATE
 } from '../ecs/config.js';
-import { GAME_STATE, TRANSFORM, ANIMATION, RENDER, ENEMY as ENEMY_C, AI, HEALTH, PLAYER, GRID_PLACEMENT, SOUND } from '../components';
+import { GAME_STATE, TRANSFORM, ANIMATION, RENDER, ENEMY as ENEMY_C, AI, HEALTH, GRID_PLACEMENT, SOUND } from '../components';
 import { createEnemy as createEnemyEntity } from '../entities/Enemy.js';
 
 // Ticks before death animation starts — original: queue('startDeathAnimation', 5) * 18
@@ -76,9 +76,8 @@ export class EnemySystem {
       for (const id of gameState.players) {
         const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
         const health        = engine.getComponent(id, HEALTH);
-        const player        = engine.getComponent(id, PLAYER);
-        if (gridPlacement && health && player) {
-          playerCells.push({ gridX: gridPlacement.gridX, gridY: gridPlacement.gridY, health, player });
+        if (gridPlacement && health) {
+          playerCells.push({ id, gridX: gridPlacement.gridX, gridY: gridPlacement.gridY, health });
         }
       }
 
@@ -101,12 +100,10 @@ export class EnemySystem {
           continue;
         }
 
-        // Check player collision
+        // Check player collision — PlayerSystem resolves death (immunity guard lives there)
         for (const pc of playerCells) {
-          if (pc.gridX === gridPlacement.gridX && pc.gridY === gridPlacement.gridY) {
-            if (!(pc.player && pc.player.invincibilityTimer) && !pc.health.isDying) {
-              pc.health.isDying = true;
-            }
+          if (pc.gridX === gridPlacement.gridX && pc.gridY === gridPlacement.gridY && !pc.health.isDying) {
+            gameState.pendingPlayerDeath = pc.id;
           }
         }
 

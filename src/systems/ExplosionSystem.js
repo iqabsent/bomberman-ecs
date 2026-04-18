@@ -1,5 +1,5 @@
 import { TYPE } from '../ecs/config.js';
-import { GAME_STATE, FLAME, FUSE, GRID_PLACEMENT, DESTROYABLE, HEALTH, PLAYER } from '../components';
+import { GAME_STATE, FLAME, FUSE, GRID_PLACEMENT, DESTROYABLE, HEALTH } from '../components';
 
 export class ExplosionSystem {
   constructor() {
@@ -33,12 +33,8 @@ export class ExplosionSystem {
         const entityPlacement = engine.getComponent(id, GRID_PLACEMENT);
         if (!entityPlacement || entityPlacement.gridX !== flamePlacement.gridX || entityPlacement.gridY !== flamePlacement.gridY) continue;
 
-        // Respect invincibility, fireproof, and dying state
-        const health  = engine.getComponent(id, HEALTH);
-        const player  = engine.getComponent(id, PLAYER);
+        const health = engine.getComponent(id, HEALTH);
         if (health && health.isDying) continue;
-        if (player && player.invincibilityTimer > 0) continue;
-        if (player && player.fireproof) continue;
 
         destroyable.burning = true;
       }

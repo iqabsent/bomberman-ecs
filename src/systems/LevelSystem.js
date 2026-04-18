@@ -1,5 +1,5 @@
 import { STATE, SPAWN, LEVEL, DEFAULT_LIVES, LEVEL_TIME } from '../ecs/config.js';
-import { GAME_STATE, PLAYER, HEALTH } from '../components';
+import { GAME_STATE, PLAYER } from '../components';
 
 export class LevelSystem {
   constructor() {
@@ -41,16 +41,6 @@ export class LevelSystem {
 
       if (!gameState.mapLoading && !gameState.enemyLoading) {
         gameState.toLevelStartState();
-      }
-      return;
-    }
-
-    if (gameState.currentState === STATE.LEVEL_START) {
-      // Flag dying players for respawn — arriving from PLAYER_DIED with health.isDying still set
-      for (const id of gameState.players) {
-        const player = engine.getComponent(id, PLAYER);
-        const health = engine.getComponent(id, HEALTH);
-        if (player && health && health.isDying) player.pendingSpawn = SPAWN.RESPAWN;
       }
       return;
     }
