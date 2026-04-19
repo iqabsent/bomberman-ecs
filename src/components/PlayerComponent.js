@@ -5,8 +5,11 @@ export class PlayerComponent {
     this.maxBombs = 1;
     this.bombYield = 1;
     this.activeBombs = 0;
-    this.wantsToPlaceBomb = false;
-    this.wantsToDetonate = false;
+    this.pendingBombPlacement  = false; // set by InputSystem when S held and activeBombs < maxBombs
+    this.pendingBombDetonation = false; // set by InputSystem when D pressed and canDetonate
+    // INTENT FLAGS: set by InputSystem — revisit when proper message passing is in place
+    this.inputDx = 0;
+    this.inputDy = 0;
     this.movementSpeed = SPEED.NORMAL;
     this.canDetonate = false;
     this.fireproof = false;

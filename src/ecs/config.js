@@ -44,6 +44,11 @@ export const SPAWN = {
   RESPAWN: 'RESPAWN'          // retry same level after death
 };
 
+export const DAMAGE_TYPE = {
+  FIRE:  'FIRE',
+  ENEMY: 'ENEMY'
+};
+
 export const DESTROY = {
   PENDING:    'PENDING',    // destruction triggered, sequence not yet started
   DESTROYING: 'DESTROYING', // destruction animation running
@@ -51,14 +56,14 @@ export const DESTROY = {
 };
 
 export const POWER = {
-  FLAME: 0,
-  BOMB: 1,
-  SPEED: 2,
-  DETONATE: 4,
-  PASS_BOMB: 8,
-  PASS_WALL: 16,
-  FIREPROOF: 32,
-  INVINCIBLE: 64
+  FLAME:      'FLAME',
+  BOMB:       'BOMB',
+  SPEED:      'SPEED',
+  DETONATE:   'DETONATE',
+  PASS_BOMB:  'PASS_BOMB',
+  PASS_WALL:  'PASS_WALL',
+  FIREPROOF:  'FIREPROOF',
+  INVINCIBLE: 'INVINCIBLE'
 };
 
 export const SPEED = {
@@ -108,6 +113,7 @@ export const RENDER_LAYER_PLAYER = 6;
 // Explosion lifetime
 export const EXPLOSION_LIFETIME_TICKS = 36; // 6 frames * 6 ticks_per_frame
 
+export const CAMERA_PLAYER_OFFSET_X = BLOCK_WIDTH / 2;
 export const ONE_OVER_BLOCK_WIDTH = 1 / BLOCK_WIDTH;
 export const ONE_OVER_BLOCK_HEIGHT = 1 / BLOCK_HEIGHT;
 export const DIRECTIONS = [[0, -1], [1, 0], [0, 1], [-1, 0]];

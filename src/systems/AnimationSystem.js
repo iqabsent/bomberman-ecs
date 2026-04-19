@@ -1,5 +1,4 @@
-import { DESTROY } from '../ecs/config.js';
-import { ANIMATION, RENDER, DESTROYABLE } from '../components';
+import { ANIMATION, RENDER } from '../components';
 import { assetManager } from '../utils/AssetManager.js';
 
 export class AnimationSystem {
@@ -47,10 +46,8 @@ export class AnimationSystem {
             } else {
               animation.frame = frames.length - 1;
               animation.shouldAnimate = false;
-              const destroyable = engine.getComponent(id, DESTROYABLE);
-              if (destroyable && destroyable.destroyState === DESTROY.DESTROYING) {
-                destroyable.destroyState = DESTROY.DESTROYED;
-              }
+              // FLAG: read by DestroyableSystem — revisit when proper message passing is in place
+              animation.completed = true;
             }
           }
         }

@@ -2,7 +2,7 @@ import { LEVEL } from '../ecs/config.js';
 import { GAME_STATE, COLLECTIBLE, PLAYER, SOUND } from '../components';
 
 // Applies collected power-ups to the player and removes the entity.
-// MovementSystem is responsible for setting collectible.pickedUpBy.
+// PlayerSystem is responsible for setting collectible.pickedUpBy.
 export class CollectibleSystem {
   constructor() {
     this.name = 'collectible';

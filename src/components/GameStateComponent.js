@@ -39,8 +39,6 @@ export class GameStateComponent {
     // MusicSystem uses this to switch to the power-up-get music track.
     this.levelPowerCollected = false;
 
-    // Set by EnemySystem on enemy–player collision; cleared by PlayerSystem after processing
-    this.pendingPlayerDeath = null;
     // Set by PlayerSystem when INVINCIBLE powerup is gained/expires; read by MusicSystem
     this.playerInvincible = false;
 

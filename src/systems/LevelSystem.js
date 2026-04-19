@@ -17,6 +17,7 @@ export class LevelSystem {
         // Remove all old entities before MapSystem/EnemySystem spawn new ones
         LevelSystem.removeAllLevelEntities(gameState, engine);
         const spawnType = gameState.previousState === STATE.TITLE ? SPAWN.GAME_SPAWN : SPAWN.LEVEL_SPAWN;
+        // INTENT FLAG: set on player — revisit when proper message passing is in place
         for (const id of gameState.players) {
           const player = engine.getComponent(id, PLAYER);
           if (player) player.pendingSpawn = spawnType;

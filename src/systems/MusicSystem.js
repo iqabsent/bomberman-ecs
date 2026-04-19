@@ -8,7 +8,7 @@ export class MusicSystem {
     this.runsWhenPaused = true;
     this._lastMusicKey = null;
     // Callback to fire when the current one-shot track finishes
-    this._oneShotCallback = null;
+    this._onMusicEnd = null;
     // State transition to apply next tick (set by one-shot callback or poll)
     this._pendingTransition = null;
   }
@@ -17,19 +17,21 @@ export class MusicSystem {
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
-    // Apply any deferred state transition from a finished one-shot track
+    // Apply any deferred state transition from a finished one-shot track.
+    // The transition is set via _pendingTransition rather than applied directly in the onended
+    // callback to avoid mutating game state from within an async audio event.
     if (this._pendingTransition) {
       const method = this._pendingTransition;
       this._pendingTransition = null;
-      this._oneShotCallback = null;
+      this._onMusicEnd = null;
       gameState[method]();
       return;
     }
 
     // Poll each tick as a fallback — handles the case where audio was blocked
     // or the onended event didn't fire (e.g. file missing, autoplay policy)
-    if (this._oneShotCallback && soundManager.isMusicDone()) {
-      this._pendingTransition = this._oneShotCallback;
+    if (this._onMusicEnd && soundManager.isMusicDone()) {
+      this._pendingTransition = this._onMusicEnd;
       return;
     }
 
@@ -90,7 +92,7 @@ export class MusicSystem {
     }
 
     if (desiredKey !== this._lastMusicKey) {
-      this._oneShotCallback = null;
+      this._onMusicEnd = null;
 
       if (desiredKey === null) {
         soundManager.stopMusic();
@@ -99,7 +101,7 @@ export class MusicSystem {
           ? () => { this._pendingTransition = oneShotTransition; }
           : null;
         soundManager.playMusic(desiredKey, { loop, onEnded });
-        if (oneShotTransition) this._oneShotCallback = oneShotTransition;
+        if (oneShotTransition) this._onMusicEnd = oneShotTransition;
       }
 
       this._lastMusicKey = desiredKey;

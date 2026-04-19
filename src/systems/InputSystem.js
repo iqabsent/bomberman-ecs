@@ -1,4 +1,4 @@
-import { VELOCITY, ANIMATION, PLAYER, HEALTH, GAME_STATE, SOUND } from '../components';
+import { PLAYER, HEALTH, GAME_STATE } from '../components';
 import { soundManager } from '../utils/SoundManager.js';
 import { STATE } from '../ecs/config.js';
 
@@ -47,54 +47,23 @@ export class InputSystem {
         const player = engine.getComponent(id, PLAYER);
         if (!player) continue;
 
-        const velocity = engine.getComponent(id, VELOCITY);
-        if (!velocity) continue;
-
         const health = engine.getComponent(id, HEALTH);
-
-        if (health && health.isDying) {
-          velocity.vx = 0;
-          velocity.vy = 0;
+        if (health?.isDying) {
+          player.inputDx = 0;
+          player.inputDy = 0;
           continue;
         }
 
-        const prevVx = velocity.vx;
-        const prevVy = velocity.vy;
-
-        const speed = player.movementSpeed;
-
         // One axis at a time — no diagonal movement in Bomberman
-        velocity.vx = 0;
-        velocity.vy = 0;
-        if      (this.keyStates.has('ArrowLeft'))  velocity.vx = -speed;
-        else if (this.keyStates.has('ArrowRight')) velocity.vx =  speed;
-        else if (this.keyStates.has('ArrowUp'))    velocity.vy = -speed;
-        else if (this.keyStates.has('ArrowDown'))  velocity.vy =  speed;
+        player.inputDx = 0;
+        player.inputDy = 0;
+        if      (this.keyStates.has('ArrowLeft'))  player.inputDx = -1;
+        else if (this.keyStates.has('ArrowRight')) player.inputDx =  1;
+        else if (this.keyStates.has('ArrowUp'))    player.inputDy = -1;
+        else if (this.keyStates.has('ArrowDown'))  player.inputDy =  1;
 
-        const anim = engine.getComponent(id, ANIMATION);
-        if (anim) {
-          const moving = velocity.vx !== 0 || velocity.vy !== 0;
-          anim.shouldAnimate = moving;
-
-          if (moving && anim.frame === 1 && anim.ticks === 0) {
-            const sound = engine.getSingleton(SOUND);
-            if (sound) sound.queue.push(velocity.vx !== 0 ? 'step_lr' : 'step_ud');
-          }
-
-          const dirChanged = velocity.vx !== prevVx || velocity.vy !== prevVy;
-          const invChanged = (player.invincibilityTimer > 0) !== (anim.animationKey?.includes('_I_'));
-          if ((dirChanged || invChanged) && moving) {
-            const inv = player.invincibilityTimer > 0;
-            anim.loop = true;
-            if      (velocity.vy < 0) anim.animationKey = inv ? 'MAN_I_UP'    : 'MAN_UP';
-            else if (velocity.vy > 0) anim.animationKey = inv ? 'MAN_I_DOWN'  : 'MAN_DOWN';
-            else if (velocity.vx < 0) anim.animationKey = inv ? 'MAN_I_LEFT'  : 'MAN_LEFT';
-            else if (velocity.vx > 0) anim.animationKey = inv ? 'MAN_I_RIGHT' : 'MAN_RIGHT';
-          }
-        }
-
-        player.wantsToPlaceBomb = this.keyStates.has('KeyS');
-        player.wantsToDetonate  = this.justPressed.has('KeyD');
+        player.pendingBombPlacement  = this.keyStates.has('KeyS') && player.activeBombs < player.maxBombs;
+        if (this.justPressed.has('KeyD') && player.canDetonate) player.pendingBombDetonation = true;
       }
     }
 

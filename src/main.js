@@ -18,6 +18,7 @@ import { SoundSystem } from './systems/SoundSystem.js';
 import { TimerSystem } from './systems/TimerSystem.js';
 import { InputSystem } from './systems/InputSystem.js';
 import { MovementSystem } from './systems/MovementSystem.js';
+import { CollisionSystem } from './systems/CollisionSystem.js';
 import { RenderSystem } from './systems/RenderSystem.js';
 import { assetManager } from './utils/AssetManager.js';
 import { soundManager } from './utils/SoundManager.js';
@@ -45,6 +46,7 @@ const init = async () => {
   engine.registerSystem('bomb',        new BombSystem());
   engine.registerSystem('explosion',   new ExplosionSystem());
   engine.registerSystem('movement',    new MovementSystem());
+  engine.registerSystem('collision',   new CollisionSystem());
   engine.registerSystem('animation',   new AnimationSystem());
   engine.registerSystem('destroyable', new DestroyableSystem());
   engine.registerSystem('player',      new PlayerSystem());

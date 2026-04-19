@@ -15,6 +15,7 @@ export class TimerSystem {
     gameState.gameTime = Math.max(0, gameState.gameTime - dt * (1000 / 60));
     if (gameState.gameTime === 0 && !gameState.timeUp) {
       gameState.timeUp = true;
+      // FLAG: read by EnemySystem — revisit when proper message passing is in place
       gameState.pendingEnemySpawnTimer = true;
     }
   }

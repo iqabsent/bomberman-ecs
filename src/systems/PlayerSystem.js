@@ -1,4 +1,4 @@
-import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPAWN, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER, TYPE } from '../ecs/config.js';
+import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPAWN, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER, TYPE, DAMAGE_TYPE, POWER } from '../ecs/config.js';
 import { GRID_PLACEMENT, GAME_STATE, TRANSFORM, VELOCITY, ANIMATION, PLAYER, HEALTH, SOUND, COLLECTIBLE, COLLISION } from '../components';
 
 export class PlayerSystem {
@@ -62,7 +62,7 @@ export class PlayerSystem {
         if (!health || !anim || !transform || !velocity) continue;
 
         if (player.pendingPowerup) {
-          if (player.pendingPowerup === 'INVINCIBLE') gameState.playerInvincible = true;
+          if (player.pendingPowerup === POWER.INVINCIBLE) gameState.playerInvincible = true;
           PlayerSystem.applyPowerup(player, collision, player.pendingPowerup);
           player.pendingPowerup = null;
         }
@@ -80,26 +80,35 @@ export class PlayerSystem {
           }
         }
 
-        // Maintain immunity flag for ExplosionSystem
+        // Maintain immunity flag — read when processing pendingDamage below
         health.immune = player.invincibilityTimer > 0 || player.fireproof;
 
-        // Handle pending player death from enemy collision (set by EnemySystem)
-        // Only invincibility protects against enemies — fireproof does not
-        if (gameState.pendingPlayerDeath === id) {
-          if (!health.isDying && player.invincibilityTimer <= 0) health.isDying = true;
-          gameState.pendingPlayerDeath = null;
+        // Process pending damage events (set by CollisionSystem)
+        for (const dmg of health.pendingDamage) {
+          if (health.isDying) break;
+          if (dmg === DAMAGE_TYPE.FIRE  && !health.immune)                health.isDying = true;
+          if (dmg === DAMAGE_TYPE.ENEMY && player.invincibilityTimer <= 0) health.isDying = true;
         }
-
-        // Detect explosion contact via map tile — consistent with EnemySystem's approach
-        if (!health.isDying && !health.immune) {
-          const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
-          if (gridPlacement && gameMap) {
-            const cell = gameMap[gridPlacement.gridY]?.[gridPlacement.gridX];
-            if (cell & TYPE.EXPLOSION) health.isDying = true;
-          }
-        }
+        health.pendingDamage = [];
 
         if (!health.isDying) {
+          // Apply input direction to velocity and animation
+          const inv = player.invincibilityTimer > 0;
+          velocity.vx = player.inputDx * player.movementSpeed;
+          velocity.vy = player.inputDy * player.movementSpeed;
+          const moving = velocity.vx !== 0 || velocity.vy !== 0;
+          anim.shouldAnimate = moving;
+          if (moving) {
+            anim.loop = true;
+            if      (player.inputDy < 0) anim.animationKey = inv ? 'MAN_I_UP'    : 'MAN_UP';
+            else if (player.inputDy > 0) anim.animationKey = inv ? 'MAN_I_DOWN'  : 'MAN_DOWN';
+            else if (player.inputDx < 0) anim.animationKey = inv ? 'MAN_I_LEFT'  : 'MAN_LEFT';
+            else if (player.inputDx > 0) anim.animationKey = inv ? 'MAN_I_RIGHT' : 'MAN_RIGHT';
+            if (anim.frame === 1 && anim.ticks === 0) {
+              engine.getSingleton(SOUND).queue.push(velocity.vx !== 0 ? 'step_lr' : 'step_ud');
+            }
+          }
+
           // Cell overlap checks — power-up pickup and door
           const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
           if (gridPlacement && gameMap) {
@@ -176,14 +185,14 @@ export class PlayerSystem {
 
   static applyPowerup(player, collision, type) {
     switch (type) {
-      case 'FLAME':      player.bombYield = Math.min(player.bombYield + 1, MAX_YIELD); break;
-      case 'BOMB':       player.maxBombs  = Math.min(player.maxBombs  + 1, MAX_BOMBS); break;
-      case 'SPEED':      player.movementSpeed = SPEED.FAST; break;
-      case 'DETONATE':   player.canDetonate = true; break;
-      case 'PASS_BOMB':  if (collision) collision.canPass |= TYPE.BOMB; break;
-      case 'PASS_WALL':  if (collision) collision.canPass |= TYPE.SOFT_BLOCK; break;
-      case 'FIREPROOF':  player.fireproof = true; break;
-      case 'INVINCIBLE': player.invincibilityTimer = INVINCIBILITY_TIMER; break;
+      case POWER.FLAME:      player.bombYield = Math.min(player.bombYield + 1, MAX_YIELD); break;
+      case POWER.BOMB:       player.maxBombs  = Math.min(player.maxBombs  + 1, MAX_BOMBS); break;
+      case POWER.SPEED:      player.movementSpeed = SPEED.FAST; break;
+      case POWER.DETONATE:   player.canDetonate = true; break;
+      case POWER.PASS_BOMB:  if (collision) collision.canPass |= TYPE.BOMB; break;
+      case POWER.PASS_WALL:  if (collision) collision.canPass |= TYPE.SOFT_BLOCK; break;
+      case POWER.FIREPROOF:  player.fireproof = true; break;
+      case POWER.INVINCIBLE: player.invincibilityTimer = INVINCIBILITY_TIMER; break;
     }
   }
 

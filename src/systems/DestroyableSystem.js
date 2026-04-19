@@ -10,6 +10,14 @@ export class DestroyableSystem {
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
+    // Advance any DESTROYING entity to DESTROYED once its animation completes
+    for (const id of engine.entities) {
+      const destroyable = engine.getComponent(id, DESTROYABLE);
+      if (!destroyable || destroyable.destroyState !== DESTROY.DESTROYING) continue;
+      const anim = engine.getComponent(id, ANIMATION);
+      if (anim && anim.completed) destroyable.destroyState = DESTROY.DESTROYED;
+    }
+
     // Soft blocks
     for (let i = gameState.softBlocks.length - 1; i >= 0; i--) {
       const id          = gameState.softBlocks[i];

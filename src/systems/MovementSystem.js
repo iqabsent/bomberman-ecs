@@ -23,6 +23,7 @@ export class MovementSystem {
 
       const collision = engine.getComponent(id, COLLISION);
       const canPass   = collision ? collision.canPass : 0;
+      // FLAG: read by EnemySystem to reset AI state — revisit when proper message passing is in place
       if (collision) collision.blocked = false;
 
       // Clamp movement against blocked cells
@@ -57,7 +58,9 @@ export class MovementSystem {
         }
       }
 
-      // Apply velocity + grid-align correction
+      // Apply velocity with grid-alignment correction — when moving on one axis, nudge the entity
+      // toward the nearest grid centre on the other axis. This lets entities slide around corners,
+      // which is essential for the game to feel navigable at Bomberman's tight grid spacing.
       const movingX = velocity.vx !== 0;
       const movingY = velocity.vy !== 0;
       if (movingX || movingY) {

@@ -16,8 +16,8 @@ export class BombSystem {
     // Handle placement requests
     for (const id of gameState.players) {
       const player = engine.getComponent(id, PLAYER);
-      if (!player || !player.wantsToPlaceBomb) continue;
-      player.wantsToPlaceBomb = false;
+      if (!player || !player.pendingBombPlacement) continue;
+      player.pendingBombPlacement = false;
       const transform = engine.getComponent(id, TRANSFORM);
       if (transform) this.tryPlaceBomb(id, transform, player, gameState, engine);
     }
@@ -52,9 +52,8 @@ export class BombSystem {
     // D-key detonation — detonate oldest owned bomb (FIFO)
     for (const id of gameState.players) {
       const player = engine.getComponent(id, PLAYER);
-      if (!player || !player.wantsToDetonate) continue;
-      player.wantsToDetonate = false;
-      if (!player.canDetonate) continue;
+      if (!player || !player.pendingBombDetonation) continue;
+      player.pendingBombDetonation = false;
 
       const bombId = gameState.bombs.find(bid => {
         const b = engine.getComponent(bid, BOMB);
@@ -69,7 +68,6 @@ export class BombSystem {
   }
 
   tryPlaceBomb(ownerId, transform, player, gameState, engine) {
-    if (player.activeBombs >= player.maxBombs) return;
 
     const gridX = Math.round(transform.x / BLOCK_WIDTH);
     const gridY = Math.round(transform.y / BLOCK_HEIGHT);

@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH, BLOCK_WIDTH, MAP_WIDTH } from '../ecs/config.js';
+import { CANVAS_WIDTH, BLOCK_WIDTH, MAP_WIDTH, CAMERA_PLAYER_OFFSET_X } from '../ecs/config.js';
 import { GAME_STATE, TRANSFORM } from '../components';
 
 export class CameraSystem {
@@ -16,7 +16,7 @@ export class CameraSystem {
     if (!playerTransform) return;
 
     const halfViewportWidth = CANVAS_WIDTH / 2;
-    const targetCameraX = playerTransform.x + 14 - halfViewportWidth;
+    const targetCameraX = playerTransform.x + CAMERA_PLAYER_OFFSET_X - halfViewportWidth;
     const maxCameraX = MAP_WIDTH * BLOCK_WIDTH - CANVAS_WIDTH;
     gameState.cameraX = Math.max(0, Math.min(targetCameraX, maxCameraX));
     gameState.cameraY = 0;

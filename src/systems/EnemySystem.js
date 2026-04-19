@@ -78,16 +78,6 @@ export class EnemySystem {
         gameState.pendingEnemySpawnTimer = false;
       }
 
-      // Gather player grid positions for collision checks
-      const playerCells = [];
-      for (const id of gameState.players) {
-        const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
-        const health        = engine.getComponent(id, HEALTH);
-        if (gridPlacement && health) {
-          playerCells.push({ id, gridX: gridPlacement.gridX, gridY: gridPlacement.gridY, health });
-        }
-      }
-
       for (let i = gameState.enemies.length - 1; i >= 0; i--) {
         const entityId     = gameState.enemies[i];
         const enemy        = engine.getComponent(entityId, ENEMY_C);
@@ -100,18 +90,11 @@ export class EnemySystem {
         const render        = engine.getComponent(entityId, RENDER);
         const destroyable   = engine.getComponent(entityId, DESTROYABLE);
 
-        // Check explosion collision
-        const mapCell = gameState.gameMap[gridPlacement.gridY] && gameState.gameMap[gridPlacement.gridY][gridPlacement.gridX];
-        if (mapCell & TYPE.EXPLOSION) {
+        // Process pending damage events (set by CollisionSystem)
+        if (health.pendingDamage.length) {
+          health.pendingDamage = [];
           this.killEnemy(enemy, health, anim, render, destroyable, gameState, engine);
           continue;
-        }
-
-        // Check player collision — PlayerSystem resolves death (immunity guard lives there)
-        for (const pc of playerCells) {
-          if (pc.gridX === gridPlacement.gridX && pc.gridY === gridPlacement.gridY && !pc.health.isDying) {
-            gameState.pendingPlayerDeath = pc.id;
-          }
         }
 
         const velocity  = engine.getComponent(entityId, VELOCITY);
