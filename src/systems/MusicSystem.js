@@ -35,6 +35,15 @@ export class MusicSystem {
       return;
     }
 
+    if (gameState.musicMuted) {
+      if (this._lastMusicKey !== null) {
+        soundManager.stopMusic();
+        this._lastMusicKey = null;
+        this._onMusicEnd = null;
+      }
+      return;
+    }
+
     const state = gameState.currentState;
 
     // Don't interfere while paused — music keeps playing on its own

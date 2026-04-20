@@ -1,30 +1,31 @@
+import { DEBUG_MODE } from './ecs/config.js';
 import { Engine } from './ecs/engine.js';
 import { createPlayer } from './entities/Player.js';
 import { GameStateComponent } from './components/GameStateComponent.js';
 import { SoundComponent } from './components/SoundComponent.js';
-import { BombSystem } from './systems/BombSystem.js';
-import { ExplosionSystem } from './systems/ExplosionSystem.js';
 import { AnimationSystem } from './systems/AnimationSystem.js';
+import { BombSystem } from './systems/BombSystem.js';
+import { CameraSystem } from './systems/CameraSystem.js';
+import { CollectibleSystem } from './systems/CollectibleSystem.js';
+import { CollisionSystem } from './systems/CollisionSystem.js';
+import { DebugSystem } from './systems/DebugSystem.js';
+import { DestroyableSystem } from './systems/DestroyableSystem.js';
 import { EnemySystem } from './systems/EnemySystem.js';
-import { PlayerSystem } from './systems/PlayerSystem.js';
+import { ExplosionSystem } from './systems/ExplosionSystem.js';
+import { InputSystem } from './systems/InputSystem.js';
+import { TouchControlSystem } from './systems/TouchControlSystem.js';
 import { LevelSystem } from './systems/LevelSystem.js';
 import { MapSystem } from './systems/MapSystem.js';
+import { MovementSystem } from './systems/MovementSystem.js';
 import { MusicSystem } from './systems/MusicSystem.js';
-import { CollectibleSystem } from './systems/CollectibleSystem.js';
-import { DestroyableSystem } from './systems/DestroyableSystem.js';
-import { CameraSystem } from './systems/CameraSystem.js';
-import { DebugSystem } from './systems/DebugSystem.js';
+import { PlayerSystem } from './systems/PlayerSystem.js';
+import { RenderSystem } from './systems/RenderSystem.js';
 import { SoundSystem } from './systems/SoundSystem.js';
 import { TimerSystem } from './systems/TimerSystem.js';
-import { InputSystem } from './systems/InputSystem.js';
-import { MovementSystem } from './systems/MovementSystem.js';
-import { CollisionSystem } from './systems/CollisionSystem.js';
-import { RenderSystem } from './systems/RenderSystem.js';
 import { assetManager } from './utils/AssetManager.js';
-import { soundManager } from './utils/SoundManager.js';
-import { SFX } from './utils/SFX.js';
 import { MUSIC } from './utils/MUSIC.js';
-import { DEBUG_MODE } from './ecs/config.js';
+import { SFX } from './utils/SFX.js';
+import { soundManager } from './utils/SoundManager.js';
 
 const init = async () => {
   await assetManager.loadAssets();
@@ -41,7 +42,9 @@ const init = async () => {
   engine.registerSystem('map',         new MapSystem());
   engine.registerSystem('enemy',       new EnemySystem());
   engine.registerSystem('timer',       new TimerSystem());
+  const touchControls = new TouchControlSystem(ctx);
   engine.registerSystem('input',       new InputSystem());
+  engine.registerSystem('touch-input', { name: 'touch-input', runsWhenPaused: true, apply: (e) => touchControls.applyInput(e) });
   engine.registerSystem('collectible', new CollectibleSystem());
   engine.registerSystem('bomb',        new BombSystem());
   engine.registerSystem('explosion',   new ExplosionSystem());
@@ -53,7 +56,8 @@ const init = async () => {
   engine.registerSystem('sound',       new SoundSystem());
   engine.registerSystem('music',       new MusicSystem());
   engine.registerSystem('camera',      new CameraSystem());
-  engine.registerSystem('render',      new RenderSystem(ctx));
+  engine.registerSystem('render',       new RenderSystem(ctx));
+  engine.registerSystem('touch-render', { name: 'touch-render', runsWhenPaused: true, apply: () => touchControls.applyRender() });
 
   if (DEBUG_MODE) engine.registerSystem('debug', new DebugSystem());
 

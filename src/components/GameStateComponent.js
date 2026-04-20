@@ -42,6 +42,9 @@ export class GameStateComponent {
     // Set by PlayerSystem when INVINCIBLE powerup is gained/expires; read by MusicSystem
     this.playerInvincible = false;
 
+    // Toggled by SELECT touch button; read by MusicSystem
+    this.musicMuted = false;
+
     // Loading sub-states — set true when work is pending, cleared by each responsible system
     this.levelLoading = true;
     this.mapLoading = true;

@@ -17,7 +17,6 @@ export class RenderSystem {
     if (!gameState) return;
 
     if (gameState.currentState !== STATE.TITLE && gameState.currentState !== STATE.LEVEL_START && gameState.currentState !== STATE.LOADING) {
-      this.renderHUD(ctx, gameState);
 
       ctx.save();
       ctx.translate(-gameState.cameraX, OFFSET_Y);
@@ -44,11 +43,18 @@ export class RenderSystem {
     }
 
     switch (gameState.currentState) {
-      case STATE.TITLE:        this.renderOverlay(ctx, 'PRESS S TO START'); break;
+      case STATE.TITLE:        this.renderOverlay(ctx, 'BOMBERMAN'); break;
       case STATE.LEVEL_START:  this.renderOverlay(ctx, `STAGE ${gameState.currentLevel + 1}`); break;
       case STATE.GAME_OVER:    this.renderOverlay(ctx, 'GAME OVER');    break;
       case STATE.GAME_WON:     this.renderOverlay(ctx, 'YOU WIN');      break;
       case STATE.PAUSED:       this.renderOverlay(ctx, 'GAME PAUSED');  break;
+    }
+
+    if (gameState.currentState !== STATE.LOADING) {
+      this.renderHUDBar(ctx);
+    }
+    if (gameState.currentState !== STATE.TITLE && gameState.currentState !== STATE.LEVEL_START && gameState.currentState !== STATE.LOADING) {
+      this.renderHUD(ctx, gameState);
     }
   }
 
@@ -79,19 +85,27 @@ export class RenderSystem {
     }
   }
 
-  renderHUD(ctx, gameState) {
-    ctx.fillStyle = '#007C00';
-    ctx.fillRect(0, 0, ctx.canvas.width, OFFSET_Y);
-
+  renderHUDBar(ctx) {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 14px Arial';
-    ctx.fillText(`Level: ${gameState.currentLevel + 1}`, 10, 25);
-    ctx.fillText(`Lives: ${gameState.lives}`, 150, 25);
-    ctx.fillText(`Score: ${gameState.score}`, 300, 25);
-    ctx.fillText(`Time: ${Math.floor(gameState.gameTime / 1000)}s`, 450, 25);
+    ctx.textAlign = 'left';
+    ctx.fillText('Arrows: Move | S: Bomb | D: Detonate', 10, 25);
+    ctx.textAlign = 'left';
+  }
 
-    ctx.font = '12px Arial';
-    ctx.fillStyle = '#aaa';
-    ctx.fillText('Arrow Keys: Move | S: Bomb | D: Detonate', 10, 50);
+  renderHUD(ctx, gameState) {
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 14px Arial';
+
+    ctx.textAlign = 'left';
+    ctx.fillText(`TIME ${Math.floor(gameState.gameTime / 1000)}`, 10, 50);
+
+    ctx.textAlign = 'center';
+    ctx.fillText(`${gameState.score}`, ctx.canvas.width / 2, 50);
+
+    ctx.textAlign = 'right';
+    ctx.fillText(`LEFT ${gameState.lives}`, ctx.canvas.width - 10, 50);
+
+    ctx.textAlign = 'left';
   }
 }

@@ -29,6 +29,10 @@ export class InputSystem {
       gameState.toLoadingState();
     }
 
+    if (this.justPressed.has('KeyM')) {
+      gameState.musicMuted = !gameState.musicMuted;
+    }
+
     if (this.justPressed.has('KeyP') &&
         (gameState.currentState === STATE.PLAYING || gameState.currentState === STATE.PAUSED)) {
       const wasPaused = engine.paused;
