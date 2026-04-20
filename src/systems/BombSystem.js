@@ -138,11 +138,17 @@ export class BombSystem {
             return gp && gp.gridX === tx && gp.gridY === ty;
           });
           if (entityId) {
-            gameState.gameMap[ty][tx] &= ~TYPE.POWER;
-            gameState.powerups.splice(gameState.powerups.indexOf(entityId), 1);
-            engine.removeEntity(entityId);
-            gameState.pendingEnemySpawnDoor = { gridX: tx, gridY: ty, enemyType: 'PONTAN' };
+            const puDestroyable = engine.getComponent(entityId, DESTROYABLE);
+            if (puDestroyable && !puDestroyable.destroyState) puDestroyable.destroyState = DESTROY.PENDING;
           }
+        }
+
+        if (cell & TYPE.DOOR) {
+          if (gameState.door) {
+            const doorDestroyable = engine.getComponent(gameState.door, DESTROYABLE);
+            if (doorDestroyable && !doorDestroyable.destroyState) doorDestroyable.destroyState = DESTROY.PENDING;
+          }
+          // Door doesn't block flame spread
         }
 
         if (cell & TYPE.BOMB) {

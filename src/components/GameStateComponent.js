@@ -30,10 +30,12 @@ export class GameStateComponent {
     this.pendingMapReveals = [];
 
     // Pending enemy spawns — written by DestroyableSystem/TimerSystem, processed by EnemySystem
-    // pendingEnemySpawnDoor: { gridX, gridY, enemyType } — deferred until flames leave the cell
+    // pendingEnemySpawnDoor: { gridX, gridY } — deferred until flames leave the cell; spawns next level's enemy type
+    // pendingEnemySpawnPowerUp: { gridX, gridY } — deferred until flames leave the cell; spawns PONTANs
     // pendingEnemySpawnTimer: true — spawn PONTANs from random clear cells
-    this.pendingEnemySpawnDoor  = null;
-    this.pendingEnemySpawnTimer = false;
+    this.pendingEnemySpawnDoor    = null;
+    this.pendingEnemySpawnPowerUp = null;
+    this.pendingEnemySpawnTimer   = false;
 
     // Set by CollectibleSystem when the level's designated power-up is collected.
     // MusicSystem uses this to switch to the power-up-get music track.

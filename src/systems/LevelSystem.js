@@ -61,8 +61,9 @@ export class LevelSystem {
     gameState.enemies = [];
     gameState.softBlocks = [];
     gameState.pendingMapReveals = [];
-    gameState.pendingEnemySpawnDoor  = null;
-    gameState.pendingEnemySpawnTimer = false;
+    gameState.pendingEnemySpawnDoor    = null;
+    gameState.pendingEnemySpawnPowerUp = null;
+    gameState.pendingEnemySpawnTimer   = false;
     gameState.levelPowerCollected    = false;
   }
 

@@ -46,22 +46,39 @@ export class EnemySystem {
     }
 
     if (gameState.currentState === STATE.PLAYING) {
-      // Door burn — spawn enemies once flames have cleared the door cell
+      // Door burn — spawn next level's enemy type once flames clear
       if (gameState.pendingEnemySpawnDoor) {
-        const { gridX, gridY, enemyType } = gameState.pendingEnemySpawnDoor;
+        const { gridX, gridY } = gameState.pendingEnemySpawnDoor;
         const flamesOnCell = gameState.flames.some(id => {
           const gp = engine.getComponent(id, GRID_PLACEMENT);
           return gp && gp.gridX === gridX && gp.gridY === gridY;
         });
         if (!flamesOnCell) {
-          const stats = ENEMY[enemyType];
+          const nextLevelData = LEVEL[(gameState.currentLevel + 1) % LEVEL.length];
+          const enemyType     = Object.keys(nextLevelData.enemies).slice(-1)[0];
+          const stats         = ENEMY[enemyType];
           if (stats) {
             for (let j = 0; j < 8; j++) {
-              const id = EnemySystem.createEnemy(enemyType, stats, gridX, gridY, engine);
-              gameState.enemies.push(id);
+              gameState.enemies.push(EnemySystem.createEnemy(enemyType, stats, gridX, gridY, engine));
             }
           }
           gameState.pendingEnemySpawnDoor = null;
+        }
+      }
+
+      // Power-up burn — spawn PONTANs once flames clear
+      if (gameState.pendingEnemySpawnPowerUp) {
+        const { gridX, gridY } = gameState.pendingEnemySpawnPowerUp;
+        const flamesOnCell = gameState.flames.some(id => {
+          const gp = engine.getComponent(id, GRID_PLACEMENT);
+          return gp && gp.gridX === gridX && gp.gridY === gridY;
+        });
+        if (!flamesOnCell) {
+          const stats = ENEMY['PONTAN'];
+          for (let j = 0; j < 8; j++) {
+            gameState.enemies.push(EnemySystem.createEnemy('PONTAN', stats, gridX, gridY, engine));
+          }
+          gameState.pendingEnemySpawnPowerUp = null;
         }
       }
 

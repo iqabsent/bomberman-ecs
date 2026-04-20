@@ -1,4 +1,4 @@
-import { LEVEL, DESTROY } from '../ecs/config.js';
+import { DESTROY, TYPE } from '../ecs/config.js';
 import { GAME_STATE, ANIMATION, DESTROYABLE, GRID_PLACEMENT } from '../components';
 
 export class DestroyableSystem {
@@ -38,15 +38,28 @@ export class DestroyableSystem {
       }
     }
 
+    // Power-ups — instant removal, queues PONTAN spawn
+    for (let i = gameState.powerups.length - 1; i >= 0; i--) {
+      const id          = gameState.powerups[i];
+      const destroyable = engine.getComponent(id, DESTROYABLE);
+      if (!destroyable || destroyable.destroyState !== DESTROY.PENDING) continue;
+
+      const gp = engine.getComponent(id, GRID_PLACEMENT);
+      if (gp) {
+        gameState.gameMap[gp.gridY][gp.gridX] &= ~TYPE.POWER;
+        gameState.pendingEnemySpawnPowerUp = { gridX: gp.gridX, gridY: gp.gridY };
+      }
+      gameState.powerups.splice(i, 1);
+      engine.removeEntity(id);
+    }
+
     // Door — destruction queues an enemy spawn for EnemySystem to handle once flames clear
     if (gameState.door && !gameState.doorTriggered) {
       const destroyable = engine.getComponent(gameState.door, DESTROYABLE);
       if (destroyable && destroyable.destroyState === DESTROY.PENDING) {
         destroyable.destroyState = DESTROY.DESTROYING;
         const gridPlacement = engine.getComponent(gameState.door, GRID_PLACEMENT);
-        const nextLevelData = LEVEL[(gameState.currentLevel + 1) % LEVEL.length];
-        const enemyType     = Object.keys(nextLevelData.enemies).slice(-1)[0];
-        gameState.pendingEnemySpawnDoor = { gridX: gridPlacement.gridX, gridY: gridPlacement.gridY, enemyType };
+        gameState.pendingEnemySpawnDoor = { gridX: gridPlacement.gridX, gridY: gridPlacement.gridY };
         gameState.doorTriggered = true;
       }
     }
