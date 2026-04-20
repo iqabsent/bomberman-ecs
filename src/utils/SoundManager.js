@@ -20,6 +20,16 @@ class SoundManager {
     for (const track of Object.values(this._music)) track.volume = level;
   }
 
+  muteMusic() {
+    this._preMuteVolume = this._musicVolume;
+    for (const track of Object.values(this._music)) track.volume = 0;
+  }
+
+  unmuteMusic() {
+    const vol = this._preMuteVolume ?? this._musicVolume;
+    for (const track of Object.values(this._music)) track.volume = vol;
+  }
+
   load(sfxData) {
     for (const [key, src] of Object.entries(sfxData)) {
       if (src) {

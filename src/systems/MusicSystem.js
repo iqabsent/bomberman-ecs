@@ -7,6 +7,7 @@ export class MusicSystem {
     this.name = 'music';
     this.runsWhenPaused = true;
     this._lastMusicKey = null;
+    this._muted = false;
     // Callback to fire when the current one-shot track finishes
     this._onMusicEnd = null;
     // State transition to apply next tick (set by one-shot callback or poll)
@@ -35,13 +36,9 @@ export class MusicSystem {
       return;
     }
 
-    if (gameState.musicMuted) {
-      if (this._lastMusicKey !== null) {
-        soundManager.stopMusic();
-        this._lastMusicKey = null;
-        this._onMusicEnd = null;
-      }
-      return;
+    if (gameState.musicMuted !== this._muted) {
+      this._muted = gameState.musicMuted;
+      this._muted ? soundManager.muteMusic() : soundManager.unmuteMusic();
     }
 
     const state = gameState.currentState;
