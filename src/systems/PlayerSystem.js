@@ -15,6 +15,7 @@ export class PlayerSystem {
       for (const id of gameState.players) {
         const player = engine.getComponent(id, PLAYER);
         const health = engine.getComponent(id, HEALTH);
+        // TODO(events): add SpawnIntent component (SPAWN.RESPAWN) to player entity instead (component-on-entity pattern)
         if (player && health && health.isDying) player.pendingSpawn = SPAWN.RESPAWN;
       }
     }
@@ -22,6 +23,7 @@ export class PlayerSystem {
     // Process pending spawns regardless of game state — may be set during LOADING or LEVEL_START
     for (const id of gameState.players) {
       const player = engine.getComponent(id, PLAYER);
+      // TODO(events): query for SpawnIntent component on player entity instead (component-on-entity pattern)
       if (!player || !player.pendingSpawn) continue;
 
       const transform     = engine.getComponent(id, TRANSFORM);
@@ -61,6 +63,7 @@ export class PlayerSystem {
         const collision = engine.getComponent(id, COLLISION);
         if (!health || !anim || !transform || !velocity) continue;
 
+        // TODO(events): query for PowerUpIntent component on player entity instead (component-on-entity pattern)
         if (player.pendingPowerup) {
           if (player.pendingPowerup === POWER.INVINCIBLE) gameState.playerInvincible = true;
           PlayerSystem.applyPowerup(player, collision, player.pendingPowerup);
@@ -83,7 +86,7 @@ export class PlayerSystem {
         // Maintain immunity flag — read when processing pendingDamage below
         health.immune = player.invincibilityTimer > 0 || player.fireproof;
 
-        // Process pending damage events (set by CollisionSystem)
+        // TODO(events): query for DamageEvent component on this entity instead (component-on-entity pattern)
         for (const dmg of health.pendingDamage) {
           if (health.isDying) break;
           if (dmg === DAMAGE_TYPE.FIRE  && !health.immune)                health.isDying = true;
@@ -124,6 +127,7 @@ export class PlayerSystem {
               if (entityId) {
                 const collectible = engine.getComponent(entityId, COLLECTIBLE);
                 if (collectible && !collectible.pickedUpBy) {
+                  // TODO(events): add PickedUp component to collectible entity with this player's ID as payload (component-on-entity pattern)
                   collectible.pickedUpBy = id;
                   gameState.gameMap[gridY][gridX] &= ~TYPE.POWER;
                 }

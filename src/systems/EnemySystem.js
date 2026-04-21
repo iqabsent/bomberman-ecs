@@ -46,7 +46,7 @@ export class EnemySystem {
     }
 
     if (gameState.currentState === STATE.PLAYING) {
-      // Door burn — spawn next level's enemy type once flames clear
+      // TODO(events): query for DoorDestroyedEvent event entities instead of pendingEnemySpawnDoor (event-entity pattern)
       if (gameState.pendingEnemySpawnDoor) {
         const { gridX, gridY } = gameState.pendingEnemySpawnDoor;
         const flamesOnCell = gameState.flames.some(id => {
@@ -66,7 +66,7 @@ export class EnemySystem {
         }
       }
 
-      // Power-up burn — spawn PONTANs once flames clear
+      // TODO(events): query for PowerUpDestroyedEvent event entities instead, or a unified EnemySpawnQueued event (event-entity pattern)
       if (gameState.pendingEnemySpawnPowerUp) {
         const { gridX, gridY } = gameState.pendingEnemySpawnPowerUp;
         const flamesOnCell = gameState.flames.some(id => {
@@ -82,7 +82,7 @@ export class EnemySystem {
         }
       }
 
-      // Timer expiry — spawn PONTANs at random clear cells
+      // TODO(events): query for TimerExpiredEvent event entity instead of pendingEnemySpawnTimer flag (event-entity pattern)
       if (gameState.pendingEnemySpawnTimer) {
         const stats = ENEMY['PONTAN'];
         for (let i = 0; i < 5; i++) {

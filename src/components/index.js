@@ -1,4 +1,5 @@
-export const ANIMATION      = 'AnimationComponent';
+export const ANIMATION = 'AnimationComponent';
+export const EVENTS    = 'EventComponent';
 export const BOMB           = 'BombComponent';
 export const COLLECTIBLE    = 'CollectibleComponent';
 export const COLLISION      = 'CollisionComponent';

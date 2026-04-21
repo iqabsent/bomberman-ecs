@@ -66,7 +66,9 @@ export class InputSystem {
         else if (this.keyStates.has('ArrowUp'))    player.inputDy = -1;
         else if (this.keyStates.has('ArrowDown'))  player.inputDy =  1;
 
+        // TODO(events): add BombPlacementIntent component to player entity when true; remove it when false (component-on-entity pattern)
         player.pendingBombPlacement  = this.keyStates.has('KeyS') && player.activeBombs < player.maxBombs;
+        // TODO(events): add BombDetonationIntent component to player entity; removed by cleanup at start of next frame (component-on-entity pattern)
         if (this.justPressed.has('KeyD') && player.canDetonate) player.pendingBombDetonation = true;
       }
     }

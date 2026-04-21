@@ -15,7 +15,7 @@ export class TimerSystem {
     gameState.gameTime = Math.max(0, gameState.gameTime - dt * (1000 / 60));
     if (gameState.gameTime === 0 && !gameState.timeUp) {
       gameState.timeUp = true;
-      // FLAG: read by EnemySystem — revisit when proper message passing is in place
+      // TODO(events): create TimerExpiredEvent event entity instead; timeUp guard becomes redundant once events are one-shot (event-entity pattern)
       gameState.pendingEnemySpawnTimer = true;
     }
   }

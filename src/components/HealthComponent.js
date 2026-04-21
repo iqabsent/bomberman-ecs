@@ -3,7 +3,7 @@ export class HealthComponent {
     this.isDying = false;
     this.deathAnimStarted = false;
     this.immune = false;
-    // QUEUE: populated by CollisionSystem — revisit when proper message passing is in place
+    // TODO(events): replace pendingDamage array with DamageEvent component on this entity, payload: DAMAGE_TYPE (component-on-entity pattern)
     this.pendingDamage = [];
   }
 }

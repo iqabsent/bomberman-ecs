@@ -46,7 +46,7 @@ export class MapSystem {
       return;
     }
 
-    // Process cells where soft blocks have finished burning
+    // TODO(events): query for SoftBlockDestroyed event entities instead of pendingMapReveals array (event-entity pattern)
     if (gameState.pendingMapReveals.length === 0) return;
 
     const levelPower = LEVEL[gameState.currentLevel % LEVEL.length].power;

@@ -83,6 +83,7 @@ export class MusicSystem {
       case STATE.PLAYING: {
         if (gameState.playerInvincible) {
           desiredKey = 'specialPowerUpGet';
+        // TODO(events): query for LevelPowerCollectedEvent event entity instead (event-entity pattern)
         } else if (gameState.levelPowerCollected) {
           desiredKey = 'powerUpGet';
         } else {

@@ -1,4 +1,6 @@
 import { ANIMATION, RENDER } from '../components';
+import { EVENT } from '../ecs/events.js';
+import { emitEvent } from '../ecs/eventHelpers.js';
 import { assetManager } from '../utils/AssetManager.js';
 
 export class AnimationSystem {
@@ -46,8 +48,7 @@ export class AnimationSystem {
             } else {
               animation.frame = frames.length - 1;
               animation.shouldAnimate = false;
-              // FLAG: read by DestroyableSystem — revisit when proper message passing is in place
-              animation.completed = true;
+              emitEvent(engine, id, { type: EVENT.ANIMATION_COMPLETED });
             }
           }
         }

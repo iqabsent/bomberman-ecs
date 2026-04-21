@@ -1,0 +1,3 @@
+export const EVENT = {
+  ANIMATION_COMPLETED: 'ANIMATION_COMPLETED',
+};

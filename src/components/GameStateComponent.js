@@ -24,21 +24,19 @@ export class GameStateComponent {
     this.softBlockCount = 0;
     this.powerSpawned = false;
     this.doorSpawned = false;
+    // TODO(events): remove doorTriggered — replaced by DoorTriggeredEvent entity; its existence is the idempotency guard (event-entity pattern)
     this.doorTriggered = false;
 
-    // Cells pending map reveal — written by DestroyableSystem, processed by MapSystem
+    // TODO(events): replace pendingMapReveals with SoftBlockDestroyed event entities (event-entity pattern)
     this.pendingMapReveals = [];
 
-    // Pending enemy spawns — written by DestroyableSystem/TimerSystem, processed by EnemySystem
-    // pendingEnemySpawnDoor: { gridX, gridY } — deferred until flames leave the cell; spawns next level's enemy type
-    // pendingEnemySpawnPowerUp: { gridX, gridY } — deferred until flames leave the cell; spawns PONTANs
-    // pendingEnemySpawnTimer: true — spawn PONTANs from random clear cells
+    // TODO(events): replace with DoorDestroyedEvent, PowerUpDestroyedEvent, TimerExpiredEvent event entities
+    // Consider unifying DoorDestroyed and PowerUpDestroyed into a single EnemySpawnQueued event (event-entity pattern)
     this.pendingEnemySpawnDoor    = null;
     this.pendingEnemySpawnPowerUp = null;
     this.pendingEnemySpawnTimer   = false;
 
-    // Set by CollectibleSystem when the level's designated power-up is collected.
-    // MusicSystem uses this to switch to the power-up-get music track.
+    // TODO(events): replace with LevelPowerCollectedEvent event entity; MusicSystem queries for it (event-entity pattern)
     this.levelPowerCollected = false;
 
     // Set by PlayerSystem when INVINCIBLE powerup is gained/expires; read by MusicSystem
@@ -47,7 +45,7 @@ export class GameStateComponent {
     // Toggled by SELECT touch button; read by MusicSystem
     this.musicMuted = false;
 
-    // Loading sub-states — set true when work is pending, cleared by each responsible system
+    // TODO(events): replace mapLoading/enemyLoading with SystemReadyEvent entities emitted by MapSystem and EnemySystem; LevelSystem queries for both (event-entity pattern)
     this.levelLoading = true;
     this.mapLoading = true;
     this.enemyLoading = true;

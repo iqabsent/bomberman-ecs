@@ -20,6 +20,7 @@ export class CollisionSystem {
       if (!gp) continue;
 
       if (gameMap[gp.gridY]?.[gp.gridX] & TYPE.EXPLOSION) {
+        // TODO(events): add DamageEvent component (FIRE) to this enemy entity instead (component-on-entity pattern)
         health.pendingDamage.push(DAMAGE_TYPE.FIRE);
       }
 
@@ -36,11 +37,13 @@ export class CollisionSystem {
       const cell = gameMap[gp.gridY]?.[gp.gridX];
 
       if (cell & TYPE.EXPLOSION) {
+        // TODO(events): add DamageEvent component (FIRE) to this player entity instead (component-on-entity pattern)
         health.pendingDamage.push(DAMAGE_TYPE.FIRE);
       }
 
       for (const ec of enemyCells) {
         if (ec.gridX === gp.gridX && ec.gridY === gp.gridY) {
+          // TODO(events): add DamageEvent component (ENEMY) to this player entity instead (component-on-entity pattern)
           health.pendingDamage.push(DAMAGE_TYPE.ENEMY);
           break;
         }

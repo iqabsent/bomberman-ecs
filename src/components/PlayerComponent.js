@@ -5,16 +5,19 @@ export class PlayerComponent {
     this.maxBombs = 1;
     this.bombYield = 1;
     this.activeBombs = 0;
-    this.pendingBombPlacement  = false; // set by InputSystem when S held and activeBombs < maxBombs
-    this.pendingBombDetonation = false; // set by InputSystem when D pressed and canDetonate
-    // INTENT FLAGS: set by InputSystem — revisit when proper message passing is in place
+    // TODO(events): replace with BombPlacementIntent component on this entity (component-on-entity pattern)
+    this.pendingBombPlacement  = false;
+    // TODO(events): replace with BombDetonationIntent component on this entity (component-on-entity pattern)
+    this.pendingBombDetonation = false;
     this.inputDx = 0;
     this.inputDy = 0;
     this.movementSpeed = SPEED.NORMAL;
     this.canDetonate = false;
     this.fireproof = false;
     this.invincibilityTimer = 0;
-    this.pendingSpawn = null;   // set to a SPAWN value; PlayerSystem handles the reset and clears it
-    this.pendingPowerup = null; // set by CollectibleSystem; applied and cleared by PlayerSystem
+    // TODO(events): replace with SpawnIntent component on this entity, payload: SPAWN type (component-on-entity pattern)
+    this.pendingSpawn = null;
+    // TODO(events): replace with PowerUpIntent component on this entity, payload: power-up type (component-on-entity pattern)
+    this.pendingPowerup = null;
   }
 }

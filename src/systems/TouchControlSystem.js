@@ -141,9 +141,11 @@ export class TouchControlSystem {
           }
         }
 
+        // TODO(events): add/remove BombPlacementIntent component based on BOMB held state (component-on-entity pattern)
         if (this._held.has('BOMB')) {
           player.pendingBombPlacement = player.activeBombs < player.maxBombs;
         }
+        // TODO(events): add BombDetonationIntent component to player entity; removed by cleanup at start of next frame (component-on-entity pattern)
         if (this._justPressed.has('DETONATE') && player.canDetonate) {
           player.pendingBombDetonation = true;
         }

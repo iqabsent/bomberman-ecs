@@ -16,6 +16,7 @@ export class BombSystem {
     // Handle placement requests
     for (const id of gameState.players) {
       const player = engine.getComponent(id, PLAYER);
+      // TODO(events): query for BombPlacementIntent component on player entity instead (component-on-entity pattern)
       if (!player || !player.pendingBombPlacement) continue;
       player.pendingBombPlacement = false;
       const transform = engine.getComponent(id, TRANSFORM);
@@ -52,6 +53,7 @@ export class BombSystem {
     // D-key detonation — detonate oldest owned bomb (FIFO)
     for (const id of gameState.players) {
       const player = engine.getComponent(id, PLAYER);
+      // TODO(events): query for BombDetonationIntent component on player entity instead (component-on-entity pattern)
       if (!player || !player.pendingBombDetonation) continue;
       player.pendingBombDetonation = false;
 

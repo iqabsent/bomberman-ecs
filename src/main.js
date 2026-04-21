@@ -4,6 +4,7 @@ import { createPlayer } from './entities/Player.js';
 import { GameStateComponent } from './components/GameStateComponent.js';
 import { SoundComponent } from './components/SoundComponent.js';
 import { AnimationSystem } from './systems/AnimationSystem.js';
+import { EventCleanupSystem } from './systems/EventCleanupSystem.js';
 import { BombSystem } from './systems/BombSystem.js';
 import { CameraSystem } from './systems/CameraSystem.js';
 import { CollectibleSystem } from './systems/CollectibleSystem.js';
@@ -38,7 +39,8 @@ const init = async () => {
   const engine = new Engine();
 
   // Register systems in order of execution
-  engine.registerSystem('level',       new LevelSystem());
+  engine.registerSystem('event-cleanup', new EventCleanupSystem());
+  engine.registerSystem('level',         new LevelSystem());
   engine.registerSystem('map',         new MapSystem());
   engine.registerSystem('enemy',       new EnemySystem());
   engine.registerSystem('timer',       new TimerSystem());
