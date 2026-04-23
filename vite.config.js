@@ -6,6 +6,9 @@ export default defineConfig({
     outDir: '../dist',
     emptyOutDir: true,
   },
+  esbuild: {
+    keepNames: true,
+  },
   server: {
     port: 5173,
   },
