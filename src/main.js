@@ -73,6 +73,22 @@ const init = async () => {
   // Create and register the player entity
   gameState.players.push(createPlayer(engine));
 
+  // Fullscreen button — only shown where the API is available (not iOS Safari)
+  const fsBtn = document.getElementById('fullscreen-btn');
+  if (document.fullscreenEnabled || document.webkitFullscreenEnabled) {
+    fsBtn.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      } else {
+        const el = document.documentElement;
+        (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+      }
+    });
+  } else {
+    fsBtn.style.display = 'none';
+  }
+
   // Retry music on any user interaction — unlocks autoplay after page load
   const onInteraction = () => soundManager.retryMusic();
   window.addEventListener('keydown',    onInteraction, { once: false });
