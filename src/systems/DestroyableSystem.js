@@ -1,7 +1,7 @@
 import { DESTROY, TYPE } from '../ecs/config.js';
 import { GAME_STATE, ANIMATION, DESTROYABLE, GRID_PLACEMENT } from '../components';
 import { EVENT } from '../ecs/events.js';
-import { getEvent } from '../ecs/eventHelpers.js';
+import { emitEvent, getEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
 export class DestroyableSystem {
   constructor() {
@@ -9,6 +9,8 @@ export class DestroyableSystem {
   }
 
   apply(engine) {
+    clearEventsByType(engine, EVENT.SOFT_BLOCK_DESTROYED);
+
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
@@ -29,8 +31,7 @@ export class DestroyableSystem {
       if (destroyable.destroyState === DESTROY.PENDING) {
         destroyable.destroyState = DESTROY.DESTROYING;
         const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
-        // TODO(events): create SoftBlockDestroyed event entity with { gridX, gridY } payload instead (event-entity pattern)
-        if (gridPlacement) gameState.pendingMapReveals.push({ gridX: gridPlacement.gridX, gridY: gridPlacement.gridY });
+        if (gridPlacement) emitEvent(engine, id, { type: EVENT.SOFT_BLOCK_DESTROYED, payload: { gridX: gridPlacement.gridX, gridY: gridPlacement.gridY } });
         const anim = engine.getComponent(id, ANIMATION);
         if (anim) { anim.loop = false; anim.shouldAnimate = true; }
       }
@@ -58,15 +59,13 @@ export class DestroyableSystem {
     }
 
     // Door — destruction queues an enemy spawn for EnemySystem to handle once flames clear
-    // TODO(events): query for absence of DoorTriggeredEvent entity — its existence acts as the idempotency guard (event-entity pattern)
-    if (gameState.door && !gameState.doorTriggered) {
+    if (gameState.door) {
       const destroyable = engine.getComponent(gameState.door, DESTROYABLE);
       if (destroyable && destroyable.destroyState === DESTROY.PENDING) {
         destroyable.destroyState = DESTROY.DESTROYING;
         const gridPlacement = engine.getComponent(gameState.door, GRID_PLACEMENT);
-        // TODO(events): create DoorDestroyedEvent event entity with { gridX, gridY } payload; its existence replaces doorTriggered (event-entity pattern)
+        // TODO(events): replace with EnemySpawnQueued event entity (event-entity pattern) — multi-frame persistent state
         gameState.pendingEnemySpawnDoor = { gridX: gridPlacement.gridX, gridY: gridPlacement.gridY };
-        gameState.doorTriggered = true;
       }
     }
   }

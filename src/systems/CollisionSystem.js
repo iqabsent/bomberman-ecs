@@ -1,5 +1,7 @@
-import { TYPE, STATE, DAMAGE_TYPE } from '../ecs/config.js';
+import { TYPE, STATE } from '../ecs/config.js';
 import { GAME_STATE, GRID_PLACEMENT, HEALTH } from '../components';
+import { EVENT } from '../ecs/events.js';
+import { emitEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
 export class CollisionSystem {
   constructor() {
@@ -7,6 +9,9 @@ export class CollisionSystem {
   }
 
   apply(engine, _dt) {
+    clearEventsByType(engine, EVENT.DAMAGE_FIRE);
+    clearEventsByType(engine, EVENT.DAMAGE_ENEMY);
+
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState || gameState.currentState !== STATE.PLAYING) return;
 
@@ -20,8 +25,7 @@ export class CollisionSystem {
       if (!gp) continue;
 
       if (gameMap[gp.gridY]?.[gp.gridX] & TYPE.EXPLOSION) {
-        // TODO(events): add DamageEvent component (FIRE) to this enemy entity instead (component-on-entity pattern)
-        health.pendingDamage.push(DAMAGE_TYPE.FIRE);
+        emitEvent(engine, id, { type: EVENT.DAMAGE_FIRE });
       }
 
       enemyCells.push({ gridX: gp.gridX, gridY: gp.gridY });
@@ -37,14 +41,12 @@ export class CollisionSystem {
       const cell = gameMap[gp.gridY]?.[gp.gridX];
 
       if (cell & TYPE.EXPLOSION) {
-        // TODO(events): add DamageEvent component (FIRE) to this player entity instead (component-on-entity pattern)
-        health.pendingDamage.push(DAMAGE_TYPE.FIRE);
+        emitEvent(engine, id, { type: EVENT.DAMAGE_FIRE });
       }
 
       for (const ec of enemyCells) {
         if (ec.gridX === gp.gridX && ec.gridY === gp.gridY) {
-          // TODO(events): add DamageEvent component (ENEMY) to this player entity instead (component-on-entity pattern)
-          health.pendingDamage.push(DAMAGE_TYPE.ENEMY);
+          emitEvent(engine, id, { type: EVENT.DAMAGE_ENEMY });
           break;
         }
       }

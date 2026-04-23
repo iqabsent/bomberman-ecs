@@ -1,10 +1,10 @@
 import { DEBUG_MODE } from './ecs/config.js';
 import { Engine } from './ecs/engine.js';
 import { createPlayer } from './entities/Player.js';
+import { GAME_STATE_ENTITY } from './components/index.js';
 import { GameStateComponent } from './components/GameStateComponent.js';
 import { SoundComponent } from './components/SoundComponent.js';
 import { AnimationSystem } from './systems/AnimationSystem.js';
-import { EventCleanupSystem } from './systems/EventCleanupSystem.js';
 import { BombSystem } from './systems/BombSystem.js';
 import { CameraSystem } from './systems/CameraSystem.js';
 import { CollectibleSystem } from './systems/CollectibleSystem.js';
@@ -14,7 +14,7 @@ import { DestroyableSystem } from './systems/DestroyableSystem.js';
 import { EnemySystem } from './systems/EnemySystem.js';
 import { ExplosionSystem } from './systems/ExplosionSystem.js';
 import { InputSystem } from './systems/InputSystem.js';
-import { TouchControlSystem } from './systems/TouchControlSystem.js';
+import { TouchInputSystem, TouchRenderSystem } from './systems/TouchControlSystem.js';
 import { LevelSystem } from './systems/LevelSystem.js';
 import { MapSystem } from './systems/MapSystem.js';
 import { MovementSystem } from './systems/MovementSystem.js';
@@ -37,35 +37,34 @@ const init = async () => {
   const ctx = canvas.getContext('2d');
 
   const engine = new Engine();
+  const touchInput = new TouchInputSystem(ctx);
 
   // Register systems in order of execution
-  engine.registerSystem('event-cleanup', new EventCleanupSystem());
   engine.registerSystem('level',         new LevelSystem());
-  engine.registerSystem('map',         new MapSystem());
-  engine.registerSystem('enemy',       new EnemySystem());
-  engine.registerSystem('timer',       new TimerSystem());
-  const touchControls = new TouchControlSystem(ctx);
-  engine.registerSystem('input',       new InputSystem());
-  engine.registerSystem('touch-input', { name: 'touch-input', runsWhenPaused: true, apply: (e) => touchControls.applyInput(e) });
-  engine.registerSystem('collectible', new CollectibleSystem());
-  engine.registerSystem('bomb',        new BombSystem());
-  engine.registerSystem('explosion',   new ExplosionSystem());
-  engine.registerSystem('movement',    new MovementSystem());
-  engine.registerSystem('collision',   new CollisionSystem());
-  engine.registerSystem('animation',   new AnimationSystem());
-  engine.registerSystem('destroyable', new DestroyableSystem());
-  engine.registerSystem('player',      new PlayerSystem());
-  engine.registerSystem('sound',       new SoundSystem());
-  engine.registerSystem('music',       new MusicSystem());
-  engine.registerSystem('camera',      new CameraSystem());
-  engine.registerSystem('render',       new RenderSystem(ctx));
-  engine.registerSystem('touch-render', { name: 'touch-render', runsWhenPaused: true, apply: () => touchControls.applyRender() });
+  engine.registerSystem('timer',         new TimerSystem());
+  engine.registerSystem('input',         new InputSystem());
+  engine.registerSystem('touch-input',   touchInput);
+  engine.registerSystem('bomb',          new BombSystem());
+  engine.registerSystem('explosion',     new ExplosionSystem());
+  engine.registerSystem('movement',      new MovementSystem());
+  engine.registerSystem('collision',     new CollisionSystem());
+  engine.registerSystem('animation',     new AnimationSystem());
+  engine.registerSystem('destroyable',   new DestroyableSystem());
+  engine.registerSystem('map',           new MapSystem());
+  engine.registerSystem('player',        new PlayerSystem());
+  engine.registerSystem('collectible',   new CollectibleSystem());
+  engine.registerSystem('enemy',         new EnemySystem());
+  engine.registerSystem('sound',         new SoundSystem());
+  engine.registerSystem('music',         new MusicSystem());
+  engine.registerSystem('camera',        new CameraSystem());
+  engine.registerSystem('render',        new RenderSystem(ctx));
+  engine.registerSystem('touch-render',  new TouchRenderSystem(touchInput));
 
   if (DEBUG_MODE) engine.registerSystem('debug', new DebugSystem());
 
   // Create game state entity — starts in STATE.LOADING, handled on first tick
   const gameState = new GameStateComponent();
-  engine.addComponent('game-state', gameState);
+  engine.addComponent(GAME_STATE_ENTITY, gameState);
   engine.registerSingleton(gameState);
 
   const sound = new SoundComponent();

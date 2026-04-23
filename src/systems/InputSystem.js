@@ -1,6 +1,8 @@
 import { PLAYER, HEALTH, GAME_STATE } from '../components';
 import { soundManager } from '../utils/SoundManager.js';
 import { STATE } from '../ecs/config.js';
+import { EVENT } from '../ecs/events.js';
+import { emitEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
 export class InputSystem {
   constructor() {
@@ -19,6 +21,9 @@ export class InputSystem {
   }
 
   apply(engine) {
+    clearEventsByType(engine, EVENT.BOMB_PLACEMENT_INTENT);
+    clearEventsByType(engine, EVENT.BOMB_DETONATION_INTENT);
+
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) {
       this.justPressed.clear();
@@ -66,10 +71,12 @@ export class InputSystem {
         else if (this.keyStates.has('ArrowUp'))    player.inputDy = -1;
         else if (this.keyStates.has('ArrowDown'))  player.inputDy =  1;
 
-        // TODO(events): add BombPlacementIntent component to player entity when true; remove it when false (component-on-entity pattern)
-        player.pendingBombPlacement  = this.keyStates.has('KeyS') && player.activeBombs < player.maxBombs;
-        // TODO(events): add BombDetonationIntent component to player entity; removed by cleanup at start of next frame (component-on-entity pattern)
-        if (this.justPressed.has('KeyD') && player.canDetonate) player.pendingBombDetonation = true;
+        if (this.keyStates.has('KeyS') && player.activeBombs < player.maxBombs) {
+          emitEvent(engine, id, { type: EVENT.BOMB_PLACEMENT_INTENT });
+        }
+        if (this.justPressed.has('KeyD') && player.canDetonate) {
+          emitEvent(engine, id, { type: EVENT.BOMB_DETONATION_INTENT });
+        }
       }
     }
 

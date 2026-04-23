@@ -1,5 +1,7 @@
 import { STATE } from '../ecs/config.js';
-import { GAME_STATE } from '../components';
+import { GAME_STATE, GAME_STATE_ENTITY } from '../components';
+import { EVENT } from '../ecs/events.js';
+import { emitEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
 export class TimerSystem {
   constructor() {
@@ -7,6 +9,7 @@ export class TimerSystem {
   }
 
   apply(engine, dt) {
+    clearEventsByType(engine, EVENT.TIMER_EXPIRED);
 
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
@@ -15,8 +18,7 @@ export class TimerSystem {
     gameState.gameTime = Math.max(0, gameState.gameTime - dt * (1000 / 60));
     if (gameState.gameTime === 0 && !gameState.timeUp) {
       gameState.timeUp = true;
-      // TODO(events): create TimerExpiredEvent event entity instead; timeUp guard becomes redundant once events are one-shot (event-entity pattern)
-      gameState.pendingEnemySpawnTimer = true;
+      emitEvent(engine, GAME_STATE_ENTITY, { type: EVENT.TIMER_EXPIRED });
     }
   }
 }

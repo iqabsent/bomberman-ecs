@@ -1,6 +1,8 @@
 import { PLAYER, HEALTH, GAME_STATE } from '../components';
 import { STATE } from '../ecs/config.js';
 import { soundManager } from '../utils/SoundManager.js';
+import { EVENT } from '../ecs/events.js';
+import { emitEvent } from '../ecs/eventHelpers.js';
 
 // Hit zones in canvas-space pixels (canvas: 600×403)
 const ZONES = {
@@ -17,20 +19,16 @@ const ZONES = {
 // Zones that fire once on first contact only (not on slide-in)
 const ONE_SHOT = new Set(['START', 'SELECT', 'DETONATE']);
 
-export class TouchControlSystem {
+export class TouchInputSystem {
   constructor(ctx) {
-    this.ctx = ctx;
-    this.name = 'touch';
+    this.name = 'touch-input';
     this.runsWhenPaused = true;
+    this.ctx = ctx;
 
     this._visible = false;
-
-    // pointerId → zone name (or null if pointer is between zones)
-    this._pointers = new Map();
-    // Zones pressed this tick (recomputed each apply from _pointers)
-    this._held = new Set();
-    // Zones that fired their initial contact this tick
-    this._justPressed = new Set();
+    this._pointers = new Map(); // pointerId → zone name (or null if between zones)
+    this._held = new Set();     // zones pressed this tick (recomputed each apply)
+    this._justPressed = new Set(); // zones that fired their initial contact this tick
 
     const canvas = ctx.canvas;
     canvas.addEventListener('pointerdown',   this._onDown.bind(this));
@@ -39,55 +37,7 @@ export class TouchControlSystem {
     canvas.addEventListener('pointercancel', this._onUp.bind(this));
   }
 
-  _zoneAt(x, y) {
-    for (const [name, z] of Object.entries(ZONES)) {
-      if (x >= z.x && x < z.x + z.w && y >= z.y && y < z.y + z.h) return name;
-    }
-    return null;
-  }
-
-  _canvasPos(e) {
-    const rect = this.ctx.canvas.getBoundingClientRect();
-    return {
-      x: (e.clientX - rect.left) * (this.ctx.canvas.width  / rect.width),
-      y: (e.clientY - rect.top)  * (this.ctx.canvas.height / rect.height),
-    };
-  }
-
-  _onDown(e) {
-    e.preventDefault();
-    const { x, y } = this._canvasPos(e);
-    const zone = this._zoneAt(x, y);
-
-    if (!zone) {
-      this._visible = !this._visible;
-      return;
-    }
-
-    if (!this._visible) return;
-
-    this._pointers.set(e.pointerId, zone);
-    this._justPressed.add(zone);
-  }
-
-  _onMove(e) {
-    e.preventDefault();
-    if (!this._pointers.has(e.pointerId)) return;
-    const { x, y } = this._canvasPos(e);
-    const next = this._zoneAt(x, y);
-    const prev = this._pointers.get(e.pointerId);
-    if (next !== prev) {
-      this._pointers.set(e.pointerId, next);
-      // Slide into a non-one-shot zone counts as a press
-      if (next && !ONE_SHOT.has(next)) this._justPressed.add(next);
-    }
-  }
-
-  _onUp(e) {
-    this._pointers.delete(e.pointerId);
-  }
-
-  applyInput(engine) {
+  apply(engine) {
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) { this._justPressed.clear(); return; }
 
@@ -141,13 +91,11 @@ export class TouchControlSystem {
           }
         }
 
-        // TODO(events): add/remove BombPlacementIntent component based on BOMB held state (component-on-entity pattern)
-        if (this._held.has('BOMB')) {
-          player.pendingBombPlacement = player.activeBombs < player.maxBombs;
+        if (this._held.has('BOMB') && player.activeBombs < player.maxBombs) {
+          emitEvent(engine, id, { type: EVENT.BOMB_PLACEMENT_INTENT });
         }
-        // TODO(events): add BombDetonationIntent component to player entity; removed by cleanup at start of next frame (component-on-entity pattern)
         if (this._justPressed.has('DETONATE') && player.canDetonate) {
-          player.pendingBombDetonation = true;
+          emitEvent(engine, id, { type: EVENT.BOMB_DETONATION_INTENT });
         }
       }
     }
@@ -155,15 +103,59 @@ export class TouchControlSystem {
     this._justPressed.clear();
   }
 
-  applyRender() {
-    if (this._visible) this._draw();
+  draw() {
+    if (!this._visible) return;
+    for (const [name, zone] of Object.entries(ZONES)) {
+      this._drawZone(this.ctx, zone, this._held.has(name));
+    }
   }
 
-  _draw() {
-    const ctx = this.ctx;
-    for (const [name, zone] of Object.entries(ZONES)) {
-      this._drawZone(ctx, zone, this._held.has(name));
+  _zoneAt(x, y) {
+    for (const [name, z] of Object.entries(ZONES)) {
+      if (x >= z.x && x < z.x + z.w && y >= z.y && y < z.y + z.h) return name;
     }
+    return null;
+  }
+
+  _canvasPos(e) {
+    const rect = this.ctx.canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (this.ctx.canvas.width  / rect.width),
+      y: (e.clientY - rect.top)  * (this.ctx.canvas.height / rect.height),
+    };
+  }
+
+  _onDown(e) {
+    e.preventDefault();
+    const { x, y } = this._canvasPos(e);
+    const zone = this._zoneAt(x, y);
+
+    if (!zone) {
+      this._visible = !this._visible;
+      return;
+    }
+
+    if (!this._visible) return;
+
+    this._pointers.set(e.pointerId, zone);
+    this._justPressed.add(zone);
+  }
+
+  _onMove(e) {
+    e.preventDefault();
+    if (!this._pointers.has(e.pointerId)) return;
+    const { x, y } = this._canvasPos(e);
+    const next = this._zoneAt(x, y);
+    const prev = this._pointers.get(e.pointerId);
+    if (next !== prev) {
+      this._pointers.set(e.pointerId, next);
+      // Slide into a non-one-shot zone counts as a press
+      if (next && !ONE_SHOT.has(next)) this._justPressed.add(next);
+    }
+  }
+
+  _onUp(e) {
+    this._pointers.delete(e.pointerId);
   }
 
   _drawZone(ctx, zone, pressed) {
@@ -214,7 +206,7 @@ export class TouchControlSystem {
   }
 
   _drawArrow(ctx, cx, cy, dir) {
-    const s = 11; // half-size of the triangle
+    const s = 11;
     ctx.beginPath();
     switch (dir) {
       case 'up':    ctx.moveTo(cx,     cy - s); ctx.lineTo(cx + s, cy + s); ctx.lineTo(cx - s, cy + s); break;
@@ -224,5 +216,17 @@ export class TouchControlSystem {
     }
     ctx.closePath();
     ctx.fill();
+  }
+}
+
+export class TouchRenderSystem {
+  constructor(touchInput) {
+    this.name = 'touch-render';
+    this.runsWhenPaused = true;
+    this._input = touchInput;
+  }
+
+  apply() {
+    this._input.draw();
   }
 }

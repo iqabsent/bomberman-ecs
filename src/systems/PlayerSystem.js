@@ -1,5 +1,7 @@
-import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPAWN, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER, TYPE, DAMAGE_TYPE, POWER } from '../ecs/config.js';
+import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPAWN, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER, TYPE, POWER, LEVEL } from '../ecs/config.js';
 import { GRID_PLACEMENT, GAME_STATE, TRANSFORM, VELOCITY, ANIMATION, PLAYER, HEALTH, SOUND, COLLECTIBLE, COLLISION } from '../components';
+import { EVENT } from '../ecs/events.js';
+import { emitEvent, getEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
 export class PlayerSystem {
   constructor() {
@@ -7,6 +9,8 @@ export class PlayerSystem {
   }
 
   apply(engine, dt) {
+    clearEventsByType(engine, EVENT.PICKED_UP);
+
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
@@ -15,16 +19,15 @@ export class PlayerSystem {
       for (const id of gameState.players) {
         const player = engine.getComponent(id, PLAYER);
         const health = engine.getComponent(id, HEALTH);
-        // TODO(events): add SpawnIntent component (SPAWN.RESPAWN) to player entity instead (component-on-entity pattern)
-        if (player && health && health.isDying) player.pendingSpawn = SPAWN.RESPAWN;
+        if (player && health && health.isDying) emitEvent(engine, id, { type: EVENT.SPAWN_INTENT, payload: SPAWN.RESPAWN });
       }
     }
 
     // Process pending spawns regardless of game state — may be set during LOADING or LEVEL_START
     for (const id of gameState.players) {
-      const player = engine.getComponent(id, PLAYER);
-      // TODO(events): query for SpawnIntent component on player entity instead (component-on-entity pattern)
-      if (!player || !player.pendingSpawn) continue;
+      const player     = engine.getComponent(id, PLAYER);
+      const spawnEvent = getEvent(engine, id, EVENT.SPAWN_INTENT);
+      if (!player || !spawnEvent) continue;
 
       const transform     = engine.getComponent(id, TRANSFORM);
       const velocity      = engine.getComponent(id, VELOCITY);
@@ -33,11 +36,10 @@ export class PlayerSystem {
       const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
       const collision     = engine.getComponent(id, COLLISION);
       PlayerSystem.spawnPlayer(player, transform, velocity, anim, health, gridPlacement, collision);
-      if (player.pendingSpawn === SPAWN.GAME_SPAWN) {
+      if (spawnEvent.payload === SPAWN.GAME_SPAWN) {
         PlayerSystem.resetPlayerStats(player, collision);
         gameState.playerInvincible = false;
       }
-      player.pendingSpawn = null;
     }
 
     if (gameState.currentState === STATE.LEVEL_CLEAR || gameState.currentState === STATE.PLAYER_DIED) {
@@ -63,13 +65,6 @@ export class PlayerSystem {
         const collision = engine.getComponent(id, COLLISION);
         if (!health || !anim || !transform || !velocity) continue;
 
-        // TODO(events): query for PowerUpIntent component on player entity instead (component-on-entity pattern)
-        if (player.pendingPowerup) {
-          if (player.pendingPowerup === POWER.INVINCIBLE) gameState.playerInvincible = true;
-          PlayerSystem.applyPowerup(player, collision, player.pendingPowerup);
-          player.pendingPowerup = null;
-        }
-
         // Tick invincibility down every frame regardless of explosions
         if (player.invincibilityTimer > 0) {
           player.invincibilityTimer -= dt * (1000 / 60);
@@ -83,16 +78,12 @@ export class PlayerSystem {
           }
         }
 
-        // Maintain immunity flag — read when processing pendingDamage below
         health.immune = player.invincibilityTimer > 0 || player.fireproof;
 
-        // TODO(events): query for DamageEvent component on this entity instead (component-on-entity pattern)
-        for (const dmg of health.pendingDamage) {
-          if (health.isDying) break;
-          if (dmg === DAMAGE_TYPE.FIRE  && !health.immune)                health.isDying = true;
-          if (dmg === DAMAGE_TYPE.ENEMY && player.invincibilityTimer <= 0) health.isDying = true;
+        if (!health.isDying) {
+          if (getEvent(engine, id, EVENT.DAMAGE_FIRE)  && !health.immune)                health.isDying = true;
+          if (getEvent(engine, id, EVENT.DAMAGE_ENEMY) && player.invincibilityTimer <= 0) health.isDying = true;
         }
-        health.pendingDamage = [];
 
         if (!health.isDying) {
           // Apply input direction to velocity and animation
@@ -126,10 +117,14 @@ export class PlayerSystem {
               });
               if (entityId) {
                 const collectible = engine.getComponent(entityId, COLLECTIBLE);
-                if (collectible && !collectible.pickedUpBy) {
-                  // TODO(events): add PickedUp component to collectible entity with this player's ID as payload (component-on-entity pattern)
-                  collectible.pickedUpBy = id;
+                if (collectible && !getEvent(engine, entityId, EVENT.PICKED_UP)) {
+                  PlayerSystem.applyPowerup(player, collision, collectible.type);
+                  if (collectible.type === POWER.INVINCIBLE) gameState.playerInvincible = true;
+                  const levelPower = LEVEL[gameState.currentLevel % LEVEL.length].power;
+                  if (collectible.type === levelPower) gameState.levelPowerCollected = true;
+                  engine.getSingleton(SOUND).queue.push('powerup');
                   gameState.gameMap[gridY][gridX] &= ~TYPE.POWER;
+                  emitEvent(engine, entityId, { type: EVENT.PICKED_UP });
                 }
               }
             }

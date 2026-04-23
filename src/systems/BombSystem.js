@@ -2,6 +2,8 @@ import { BLOCK_WIDTH, BLOCK_HEIGHT, TYPE, DIRECTIONS, BOMB_CHAIN_FUSE_TICKS, DES
 import { BOMB, DESTROYABLE, FUSE, GAME_STATE, GRID_PLACEMENT, PLAYER, SOUND, TRANSFORM } from '../components';
 import { createBomb } from '../entities/Bomb.js';
 import { createFlame } from '../entities/Flame.js';
+import { EVENT } from '../ecs/events.js';
+import { getEvent } from '../ecs/eventHelpers.js';
 
 export class BombSystem {
   constructor() {
@@ -16,9 +18,7 @@ export class BombSystem {
     // Handle placement requests
     for (const id of gameState.players) {
       const player = engine.getComponent(id, PLAYER);
-      // TODO(events): query for BombPlacementIntent component on player entity instead (component-on-entity pattern)
-      if (!player || !player.pendingBombPlacement) continue;
-      player.pendingBombPlacement = false;
+      if (!player || !getEvent(engine, id, EVENT.BOMB_PLACEMENT_INTENT)) continue;
       const transform = engine.getComponent(id, TRANSFORM);
       if (transform) this.tryPlaceBomb(id, transform, player, gameState, engine);
     }
@@ -53,9 +53,7 @@ export class BombSystem {
     // D-key detonation — detonate oldest owned bomb (FIFO)
     for (const id of gameState.players) {
       const player = engine.getComponent(id, PLAYER);
-      // TODO(events): query for BombDetonationIntent component on player entity instead (component-on-entity pattern)
-      if (!player || !player.pendingBombDetonation) continue;
-      player.pendingBombDetonation = false;
+      if (!player || !getEvent(engine, id, EVENT.BOMB_DETONATION_INTENT)) continue;
 
       const bombId = gameState.bombs.find(bid => {
         const b = engine.getComponent(bid, BOMB);

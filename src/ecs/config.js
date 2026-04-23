@@ -44,10 +44,6 @@ export const SPAWN = {
   RESPAWN: 'RESPAWN'          // retry same level after death
 };
 
-export const DAMAGE_TYPE = {
-  FIRE:  'FIRE',
-  ENEMY: 'ENEMY'
-};
 
 export const DESTROY = {
   PENDING:    'PENDING',    // destruction triggered, sequence not yet started

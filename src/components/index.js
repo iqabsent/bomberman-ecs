@@ -1,3 +1,5 @@
+export const GAME_STATE_ENTITY = 'game-state';
+
 export const ANIMATION = 'AnimationComponent';
 export const EVENTS    = 'EventComponent';
 export const BOMB           = 'BombComponent';

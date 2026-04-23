@@ -1,6 +1,6 @@
 import { ANIMATION, RENDER } from '../components';
 import { EVENT } from '../ecs/events.js';
-import { emitEvent } from '../ecs/eventHelpers.js';
+import { emitEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 import { assetManager } from '../utils/AssetManager.js';
 
 export class AnimationSystem {
@@ -9,6 +9,7 @@ export class AnimationSystem {
   }
 
   apply(engine, dt) {
+    clearEventsByType(engine, EVENT.ANIMATION_COMPLETED);
 
     for (const id of engine.entities) {
       const render = engine.getComponent(id, RENDER);

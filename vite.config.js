@@ -10,5 +10,5 @@ export default defineConfig({
     port: 5173,
   },
   publicDir: 'assets',
-  base: /bomberman/,
+  base: '/bomberman/'
 });

@@ -1,5 +1,7 @@
 import { STATE, SPAWN, LEVEL, DEFAULT_LIVES, LEVEL_TIME } from '../ecs/config.js';
-import { GAME_STATE, PLAYER } from '../components';
+import { GAME_STATE } from '../components';
+import { EVENT } from '../ecs/events.js';
+import { emitEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
 export class LevelSystem {
   constructor() {
@@ -7,6 +9,8 @@ export class LevelSystem {
   }
 
   apply(engine) {
+    clearEventsByType(engine, EVENT.SPAWN_INTENT);
+
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
@@ -17,10 +21,8 @@ export class LevelSystem {
         // Remove all old entities before MapSystem/EnemySystem spawn new ones
         LevelSystem.removeAllLevelEntities(gameState, engine);
         const spawnType = gameState.previousState === STATE.TITLE ? SPAWN.GAME_SPAWN : SPAWN.LEVEL_SPAWN;
-        // TODO(events): add SpawnIntent component to each player entity with spawnType as payload (component-on-entity pattern)
         for (const id of gameState.players) {
-          const player = engine.getComponent(id, PLAYER);
-          if (player) player.pendingSpawn = spawnType;
+          emitEvent(engine, id, { type: EVENT.SPAWN_INTENT, payload: spawnType });
         }
 
         // Reset game state based on where we came from
@@ -53,7 +55,6 @@ export class LevelSystem {
     gameState.timeUp = false;
     gameState.powerSpawned = false;
     gameState.doorSpawned = false;
-    gameState.doorTriggered = false;
     gameState.door = null;
     gameState.gameMap = null;
     gameState.powerups = [];
@@ -61,10 +62,8 @@ export class LevelSystem {
     gameState.flames = [];
     gameState.enemies = [];
     gameState.softBlocks = [];
-    gameState.pendingMapReveals = [];
     gameState.pendingEnemySpawnDoor    = null;
     gameState.pendingEnemySpawnPowerUp = null;
-    gameState.pendingEnemySpawnTimer   = false;
     gameState.levelPowerCollected    = false;
   }
 

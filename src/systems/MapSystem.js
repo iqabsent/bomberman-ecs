@@ -1,5 +1,7 @@
 import { STATE, TYPE, MAP_WIDTH, MAP_HEIGHT, LEVEL } from '../ecs/config.js';
 import { GAME_STATE } from '../components';
+import { EVENT } from '../ecs/events.js';
+import { getEvent } from '../ecs/eventHelpers.js';
 import { createSoftBlock } from '../entities/SoftBlock.js';
 import { createPowerUp } from '../entities/PowerUp.js';
 import { createDoor } from '../entities/Door.js';
@@ -13,7 +15,7 @@ export class MapSystem {
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
-    if (gameState.currentState === STATE.LOADING && gameState.mapLoading) {
+    if (gameState.currentState === STATE.LOADING && gameState.mapLoading && !gameState.levelLoading) {
       const map = [];
       for (let y = 0; y < MAP_HEIGHT; y++) {
         const row = [];
@@ -46,12 +48,15 @@ export class MapSystem {
       return;
     }
 
-    // TODO(events): query for SoftBlockDestroyed event entities instead of pendingMapReveals array (event-entity pattern)
-    if (gameState.pendingMapReveals.length === 0) return;
+    const reveals = gameState.softBlocks
+      .map(id => getEvent(engine, id, EVENT.SOFT_BLOCK_DESTROYED))
+      .filter(Boolean);
+    if (reveals.length === 0) return;
 
     const levelPower = LEVEL[gameState.currentLevel % LEVEL.length].power;
 
-    for (const { gridX, gridY } of gameState.pendingMapReveals) {
+    for (const ev of reveals) {
+      const { gridX, gridY } = ev.payload;
       if (gameState.softBlockCount > 0) gameState.softBlockCount--;
       const n = gameState.softBlockCount;
 
@@ -67,7 +72,5 @@ export class MapSystem {
         gameState.gameMap[gridY][gridX] = TYPE.PASSABLE;
       }
     }
-
-    gameState.pendingMapReveals = [];
   }
 }

@@ -2,8 +2,10 @@ import {
   BLOCK_WIDTH, BLOCK_HEIGHT, MAP_WIDTH, MAP_HEIGHT,
   TYPE, DIRECTIONS, ENEMY, LEVEL, STATE, DESTROY
 } from '../ecs/config.js';
-import { GAME_STATE, TRANSFORM, ANIMATION, RENDER, ENEMY as ENEMY_C, HEALTH, VELOCITY, COLLISION, DESTROYABLE, GRID_PLACEMENT, SOUND } from '../components';
+import { GAME_STATE, GAME_STATE_ENTITY, TRANSFORM, ANIMATION, RENDER, ENEMY as ENEMY_C, HEALTH, VELOCITY, COLLISION, DESTROYABLE, GRID_PLACEMENT, SOUND } from '../components';
 import { createEnemy as createEnemyEntity } from '../entities/Enemy.js';
+import { EVENT } from '../ecs/events.js';
+import { getEvent } from '../ecs/eventHelpers.js';
 
 // Ticks before death animation starts — original: queue('startDeathAnimation', 5) * 18
 const DEATH_WAIT_TICKS = 90;
@@ -18,7 +20,7 @@ export class EnemySystem {
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
-    if (gameState.currentState === STATE.LOADING && gameState.enemyLoading && !gameState.mapLoading) {
+    if (gameState.currentState === STATE.LOADING && gameState.enemyLoading && !gameState.mapLoading && !gameState.levelLoading) {
       const levelData = LEVEL[gameState.currentLevel % LEVEL.length];
       for (const [type, count] of Object.entries(levelData.enemies)) {
         const stats = ENEMY[type];
@@ -82,8 +84,7 @@ export class EnemySystem {
         }
       }
 
-      // TODO(events): query for TimerExpiredEvent event entity instead of pendingEnemySpawnTimer flag (event-entity pattern)
-      if (gameState.pendingEnemySpawnTimer) {
+      if (getEvent(engine, GAME_STATE_ENTITY, EVENT.TIMER_EXPIRED)) {
         const stats = ENEMY['PONTAN'];
         for (let i = 0; i < 5; i++) {
           const spawn = EnemySystem.findSpawnPoint(gameState.gameMap, 0);
@@ -92,7 +93,6 @@ export class EnemySystem {
             gameState.enemies.push(id);
           }
         }
-        gameState.pendingEnemySpawnTimer = false;
       }
 
       for (let i = gameState.enemies.length - 1; i >= 0; i--) {
@@ -107,9 +107,7 @@ export class EnemySystem {
         const render        = engine.getComponent(entityId, RENDER);
         const destroyable   = engine.getComponent(entityId, DESTROYABLE);
 
-        // Process pending damage events (set by CollisionSystem)
-        if (health.pendingDamage.length) {
-          health.pendingDamage = [];
+        if (getEvent(engine, entityId, EVENT.DAMAGE_FIRE)) {
           this.killEnemy(enemy, health, anim, render, destroyable, gameState, engine);
           continue;
         }

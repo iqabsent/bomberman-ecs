@@ -24,17 +24,10 @@ export class GameStateComponent {
     this.softBlockCount = 0;
     this.powerSpawned = false;
     this.doorSpawned = false;
-    // TODO(events): remove doorTriggered — replaced by DoorTriggeredEvent entity; its existence is the idempotency guard (event-entity pattern)
-    this.doorTriggered = false;
 
-    // TODO(events): replace pendingMapReveals with SoftBlockDestroyed event entities (event-entity pattern)
-    this.pendingMapReveals = [];
-
-    // TODO(events): replace with DoorDestroyedEvent, PowerUpDestroyedEvent, TimerExpiredEvent event entities
-    // Consider unifying DoorDestroyed and PowerUpDestroyed into a single EnemySpawnQueued event (event-entity pattern)
+    // TODO(events): replace with EnemySpawnQueued event entities (event-entity pattern) — multi-frame persistent state, needs dedicated component
     this.pendingEnemySpawnDoor    = null;
     this.pendingEnemySpawnPowerUp = null;
-    this.pendingEnemySpawnTimer   = false;
 
     // TODO(events): replace with LevelPowerCollectedEvent event entity; MusicSystem queries for it (event-entity pattern)
     this.levelPowerCollected = false;
