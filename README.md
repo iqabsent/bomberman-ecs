@@ -1,7 +1,7 @@
 # Bomberman
 
 A JavaScript/Canvas remake of the NES classic Bomberman.  
-The result of introducing a friend to JavaScript ..
+The result of introducing a friend to JavaScript ..  
 .. and subsequent rework to ECS using Claude code.
 
 Live demo at https://www.meetwill.com/bomberman
