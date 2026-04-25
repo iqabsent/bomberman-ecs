@@ -1,9 +1,10 @@
-import { CANVAS_WIDTH, BLOCK_WIDTH, MAP_WIDTH, CAMERA_PLAYER_OFFSET_X } from '../ecs/config.js';
+import { BLOCK_WIDTH, MAP_WIDTH, CAMERA_PLAYER_OFFSET_X } from '../ecs/config.js';
 import { GAME_STATE, TRANSFORM } from '../components';
 
 export class CameraSystem {
-  constructor() {
+  constructor(canvas) {
     this.name = 'camera';
+    this.canvas = canvas;
   }
 
   apply(engine) {
@@ -15,10 +16,10 @@ export class CameraSystem {
     const playerTransform = engine.getComponent(playerId, TRANSFORM);
     if (!playerTransform) return;
 
-    const halfViewportWidth = CANVAS_WIDTH / 2;
-    const targetCameraX = playerTransform.x + CAMERA_PLAYER_OFFSET_X - halfViewportWidth;
-    const maxCameraX = MAP_WIDTH * BLOCK_WIDTH - CANVAS_WIDTH;
-    gameState.cameraX = Math.max(0, Math.min(targetCameraX, maxCameraX));
+    const viewportW = this.canvas.width;
+    const targetCameraX = playerTransform.x + CAMERA_PLAYER_OFFSET_X - viewportW / 2;
+    const maxCameraX = MAP_WIDTH * BLOCK_WIDTH - viewportW;
+    gameState.cameraX = Math.max(0, Math.min(targetCameraX, Math.max(0, maxCameraX)));
     gameState.cameraY = 0;
   }
 }

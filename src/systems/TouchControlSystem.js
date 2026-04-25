@@ -4,18 +4,6 @@ import { soundManager } from '../utils/SoundManager.js';
 import { EVENT } from '../ecs/events.js';
 import { emitEvent } from '../ecs/eventHelpers.js';
 
-// Hit zones in canvas-space pixels (canvas: 600×403)
-const ZONES = {
-  UP:       { x: 53,  y: 258, w: 50, h: 50, arrow: 'up' },
-  LEFT:     { x: 3,   y: 308, w: 50, h: 50, arrow: 'left' },
-  RIGHT:    { x: 103, y: 308, w: 50, h: 50, arrow: 'right' },
-  DOWN:     { x: 53,  y: 358, w: 50, h: 45, arrow: 'down' },
-  BOMB:     { x: 448, y: 298, w: 55, h: 55, label: 'S', circle: true },
-  DETONATE: { x: 530, y: 298, w: 55, h: 55, label: 'D', circle: true },
-  SELECT:   { x: 242, y: 368, w: 55, h: 30, label: 'SELECT' },
-  START:    { x: 304, y: 368, w: 55, h: 30, label: 'START' },
-};
-
 // Zones that fire once on first contact only (not on slide-in)
 const ONE_SHOT = new Set(['START', 'SELECT', 'DETONATE']);
 
@@ -103,15 +91,32 @@ export class TouchInputSystem {
     this._justPressed.clear();
   }
 
+  // Zone positions anchor D-pad to the left edge and BOMB/DETONATE/SELECT/START
+  // to the right edge and centre, so they stay in the correct corners regardless
+  // of how wide the canvas is in landscape.
+  _zones() {
+    const w = this.ctx.canvas.width;
+    return {
+      UP:       { x: 53,        y: 258, w: 50, h: 50, arrow: 'up' },
+      LEFT:     { x: 3,         y: 308, w: 50, h: 50, arrow: 'left' },
+      RIGHT:    { x: 103,       y: 308, w: 50, h: 50, arrow: 'right' },
+      DOWN:     { x: 53,        y: 358, w: 50, h: 45, arrow: 'down' },
+      BOMB:     { x: w - 152,   y: 298, w: 55, h: 55, label: 'S', circle: true },
+      DETONATE: { x: w - 70,    y: 298, w: 55, h: 55, label: 'D', circle: true },
+      SELECT:   { x: w/2 - 58,  y: 368, w: 55, h: 30, label: 'SELECT' },
+      START:    { x: w/2 + 4,   y: 368, w: 55, h: 30, label: 'START' },
+    };
+  }
+
   draw() {
     if (!this._visible) return;
-    for (const [name, zone] of Object.entries(ZONES)) {
+    for (const [name, zone] of Object.entries(this._zones())) {
       this._drawZone(this.ctx, zone, this._held.has(name));
     }
   }
 
   _zoneAt(x, y) {
-    for (const [name, z] of Object.entries(ZONES)) {
+    for (const [name, z] of Object.entries(this._zones())) {
       if (x >= z.x && x < z.x + z.w && y >= z.y && y < z.y + z.h) return name;
     }
     return null;

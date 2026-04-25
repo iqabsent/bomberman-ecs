@@ -1,4 +1,4 @@
-import { TYPE, BLOCK_WIDTH, BLOCK_HEIGHT, OFFSET_Y, STATE } from '../ecs/config.js';
+import { TYPE, BLOCK_WIDTH, BLOCK_HEIGHT, OFFSET_Y, STATE, CANVAS_HEIGHT } from '../ecs/config.js';
 import { TRANSFORM, RENDER, GAME_STATE } from '../components';
 import { assetManager } from '../utils/AssetManager.js';
 
@@ -15,6 +15,10 @@ export class RenderSystem {
 
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
+
+    // Draw game floor across the full canvas width.
+    ctx.fillStyle = '#007C00';
+    ctx.fillRect(0, 0, ctx.canvas.width, CANVAS_HEIGHT);
 
     if (gameState.currentState !== STATE.TITLE && gameState.currentState !== STATE.LEVEL_START && gameState.currentState !== STATE.LOADING) {
 
@@ -65,7 +69,7 @@ export class RenderSystem {
     ctx.font = 'bold 36px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(message, ctx.canvas.width / 2, ctx.canvas.height / 2);
+    ctx.fillText(message, ctx.canvas.width / 2, CANVAS_HEIGHT / 2);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
   }
@@ -90,7 +94,6 @@ export class RenderSystem {
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'left';
     ctx.fillText('Arrows: Move | S: Bomb | D: Detonate', 10, 25);
-    ctx.textAlign = 'left';
   }
 
   renderHUD(ctx, gameState) {

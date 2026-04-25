@@ -1,4 +1,4 @@
-import { DEBUG_MODE } from './ecs/config.js';
+import { DEBUG_MODE, CANVAS_WIDTH, CANVAS_HEIGHT } from './ecs/config.js';
 import { Engine } from './ecs/engine.js';
 import { createPlayer } from './entities/Player.js';
 import { GAME_STATE_ENTITY } from './components/index.js';
@@ -28,12 +28,26 @@ import { MUSIC } from './utils/MUSIC.js';
 import { SFX } from './utils/SFX.js';
 import { soundManager } from './utils/SoundManager.js';
 
+function resizeCanvas(canvas) {
+  // In landscape, expand canvas width to fill the viewport — game renders centered at its natural 600×403.
+  // In portrait/square, keep fixed dimensions (CSS aspect-ratio constraint handles visual scaling).
+  if (window.innerWidth > window.innerHeight) {
+    canvas.height = CANVAS_HEIGHT;
+    canvas.width = Math.round(window.innerWidth / window.innerHeight * CANVAS_HEIGHT);
+  } else {
+    canvas.width  = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+  }
+}
+
 const init = async () => {
   await assetManager.loadAssets();
   soundManager.load(SFX);
   soundManager.loadMusic(MUSIC);
 
   const canvas = document.getElementById('canvas');
+  resizeCanvas(canvas);
+  window.addEventListener('resize', () => resizeCanvas(canvas));
   const ctx = canvas.getContext('2d');
 
   const engine = new Engine();
@@ -56,7 +70,7 @@ const init = async () => {
   engine.registerSystem('enemy',         new EnemySystem());
   engine.registerSystem('sound',         new SoundSystem());
   engine.registerSystem('music',         new MusicSystem());
-  engine.registerSystem('camera',        new CameraSystem());
+  engine.registerSystem('camera',        new CameraSystem(canvas));
   engine.registerSystem('render',        new RenderSystem(ctx));
   engine.registerSystem('touch-render',  new TouchRenderSystem(touchInput));
 
