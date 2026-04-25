@@ -130,13 +130,21 @@ export class TouchInputSystem {
     };
   }
 
+  _nearZone(x, y) {
+    const M = 30;
+    for (const z of Object.values(this._zones())) {
+      if (x >= z.x - M && x < z.x + z.w + M && y >= z.y - M && y < z.y + z.h + M) return true;
+    }
+    return false;
+  }
+
   _onDown(e) {
     e.preventDefault();
     const { x, y } = this._canvasPos(e);
     const zone = this._zoneAt(x, y);
 
     if (!zone) {
-      this._visible = !this._visible;
+      if (!this._nearZone(x, y)) this._visible = !this._visible;
       return;
     }
 
