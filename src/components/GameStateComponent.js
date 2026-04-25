@@ -1,6 +1,7 @@
 import { STATE } from '../ecs/config.js';
 
 export class GameStateComponent {
+  static type = 'GameStateComponent';
   constructor() {
     this.currentState = STATE.TITLE;
     this.previousState = null;

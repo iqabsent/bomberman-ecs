@@ -1,4 +1,5 @@
 export class EnemyComponent {
+  static type = 'EnemyComponent';
   constructor({ type, stats }) {
     this.type = type;
     this.points = stats.points;

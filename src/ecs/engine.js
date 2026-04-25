@@ -14,7 +14,7 @@ export class Engine {
       this.components.set(entityId, new Map());
       this.entities.add(entityId);
     }
-    this.components.get(entityId).set(component.constructor.name, component);
+    this.components.get(entityId).set(component.constructor.type, component);
   }
 
   removeComponent(entityId, componentName) {
@@ -34,7 +34,7 @@ export class Engine {
 
 
   registerSingleton(component) {
-    this.singletons.set(component.constructor.name, component);
+    this.singletons.set(component.constructor.type, component);
   }
 
   getSingleton(componentName) {

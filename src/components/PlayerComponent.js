@@ -1,6 +1,7 @@
 import { SPEED } from '../ecs/config.js';
 
 export class PlayerComponent {
+  static type = 'PlayerComponent';
   constructor() {
     this.maxBombs = 1;
     this.bombYield = 1;

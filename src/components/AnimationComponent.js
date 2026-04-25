@@ -1,4 +1,5 @@
 export class AnimationComponent {
+  static type = 'AnimationComponent';
   constructor({ ticksPerFrame = 6, animationKey = null, shouldAnimate = false, loop = true, delay = 0 } = {}) {
     this.animationKey = animationKey;
     this._prevAnimationKey = null;

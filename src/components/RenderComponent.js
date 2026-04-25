@@ -1,4 +1,5 @@
 export class RenderComponent {
+  static type = 'RenderComponent';
   constructor({ sprite = null, width = 32, height = 32, layer = 0, spriteKey = null } = {}) {
     this.sprite = sprite;
     this.width = width;
