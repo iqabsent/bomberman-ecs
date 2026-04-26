@@ -96,12 +96,12 @@ export class TouchInputSystem {
   _zones() {
     const w = this.ctx.canvas.width;
     return {
-      UP:       { x: 53,        y: 258, w: 50, h: 50, arrow: 'up' },
-      LEFT:     { x: 3,         y: 308, w: 50, h: 50, arrow: 'left' },
-      RIGHT:    { x: 103,       y: 308, w: 50, h: 50, arrow: 'right' },
-      DOWN:     { x: 53,        y: 358, w: 50, h: 45, arrow: 'down' },
-      BOMB:     { x: w - 152,   y: 298, w: 55, h: 55, label: 'S', circle: true },
-      DETONATE: { x: w - 70,    y: 298, w: 55, h: 55, label: 'D', circle: true },
+      UP:       { x: 63,        y: 258, w: 50, h: 50, arrow: 'up' },
+      LEFT:     { x: 13,        y: 308, w: 50, h: 50, arrow: 'left' },
+      RIGHT:    { x: 113,       y: 308, w: 50, h: 50, arrow: 'right' },
+      DOWN:     { x: 63,        y: 358, w: 50, h: 45, arrow: 'down' },
+      BOMB:     { x: w - 162,   y: 298, w: 55, h: 55, label: 'S', circle: true },
+      DETONATE: { x: w - 80,    y: 298, w: 55, h: 55, label: 'D', circle: true },
       SELECT:   { x: w/2 - 58,  y: 368, w: 55, h: 30, label: 'SELECT' },
       START:    { x: w/2 + 4,   y: 368, w: 55, h: 30, label: 'START' },
     };
@@ -178,12 +178,12 @@ export class TouchInputSystem {
     ctx.save();
 
     if (arrow) {
-      ctx.globalAlpha = pressed ? 1.0 : 0.55;
+      ctx.globalAlpha = pressed ? 1.0 : 0.65;
       ctx.fillStyle = '#fff';
       this._drawArrow(ctx, cx, cy, arrow);
     } else if (circle) {
       const r = Math.min(w, h) / 2 - 2;
-      ctx.globalAlpha = pressed ? 0.85 : 0.4;
+      ctx.globalAlpha = pressed ? 0.85 : 0.5;
       ctx.fillStyle = '#000';
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = 2;
@@ -191,14 +191,14 @@ export class TouchInputSystem {
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      ctx.globalAlpha = pressed ? 1.0 : 0.65;
+      ctx.globalAlpha = pressed ? 1.0 : 0.75;
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 16px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(label, cx, cy);
     } else {
-      ctx.globalAlpha = pressed ? 0.75 : 0.4;
+      ctx.globalAlpha = pressed ? 0.75 : 0.5;
       ctx.fillStyle = '#000';
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = 2;
@@ -206,7 +206,7 @@ export class TouchInputSystem {
       ctx.roundRect(x + 1, y + 1, w - 2, h - 2, 8);
       ctx.fill();
       ctx.stroke();
-      ctx.globalAlpha = pressed ? 1.0 : 0.65;
+      ctx.globalAlpha = pressed ? 1.0 : 0.75;
       ctx.fillStyle = '#fff';
       ctx.font = `bold ${label.length > 2 ? 11 : 16}px monospace`;
       ctx.textAlign = 'center';

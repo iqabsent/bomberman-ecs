@@ -16,10 +16,16 @@ export class CameraSystem {
     const playerTransform = engine.getComponent(playerId, TRANSFORM);
     if (!playerTransform) return;
 
-    const viewportW = this.canvas.width;
-    const targetCameraX = playerTransform.x + CAMERA_PLAYER_OFFSET_X - viewportW / 2;
-    const maxCameraX = MAP_WIDTH * BLOCK_WIDTH - viewportW;
-    gameState.cameraX = Math.max(0, Math.min(targetCameraX, Math.max(0, maxCameraX)));
+    const viewportW  = this.canvas.width;
+    const levelWidth = MAP_WIDTH * BLOCK_WIDTH;
+    const maxCameraX = levelWidth - viewportW;
+
+    if (maxCameraX <= 0) {
+      gameState.cameraX = maxCameraX / 2; // negative → RenderSystem translates right, centering the level
+    } else {
+      const targetCameraX = playerTransform.x + CAMERA_PLAYER_OFFSET_X - viewportW / 2;
+      gameState.cameraX = Math.max(0, Math.min(targetCameraX, maxCameraX));
+    }
     gameState.cameraY = 0;
   }
 }
