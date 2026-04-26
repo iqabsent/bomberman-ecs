@@ -2,11 +2,10 @@ import { TransformComponent } from '../components/TransformComponent.js';
 import { RenderComponent } from '../components/RenderComponent.js';
 import { AnimationComponent } from '../components/AnimationComponent.js';
 import { FlameComponent } from '../components/FlameComponent.js';
-import { FuseComponent } from '../components/FuseComponent.js';
 import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
 import {
   BLOCK_WIDTH, BLOCK_HEIGHT,
-  RENDER_LAYER_EXPLOSION, ANIM_TICKS_PER_FRAME_EXPLOSION, EXPLOSION_LIFETIME_TICKS
+  RENDER_LAYER_EXPLOSION, ANIM_TICKS_PER_FRAME_EXPLOSION
 } from '../ecs/config.js';
 
 let nextId = 1;
@@ -19,7 +18,6 @@ export function createFlame(engine, { gridX, gridY, type }) {
   engine.addComponent(id, new AnimationComponent({ ticksPerFrame: ANIM_TICKS_PER_FRAME_EXPLOSION, animationKey: 'EXPLO_' + type, loop: false, shouldAnimate: true }));
   engine.addComponent(id, new FlameComponent({ type }));
   engine.addComponent(id, new GridPlacementComponent({ gridX, gridY }));
-  engine.addComponent(id, new FuseComponent({ ticks: EXPLOSION_LIFETIME_TICKS }));
 
   return id;
 }

@@ -59,10 +59,10 @@ const init = async () => {
   engine.registerSystem('input',         new InputSystem());
   engine.registerSystem('touch-input',   touchInput);
   engine.registerSystem('bomb',          new BombSystem());
-  engine.registerSystem('explosion',     new ExplosionSystem());
   engine.registerSystem('movement',      new MovementSystem());
   engine.registerSystem('collision',     new CollisionSystem());
   engine.registerSystem('animation',     new AnimationSystem());
+  engine.registerSystem('explosion',     new ExplosionSystem());
   engine.registerSystem('destroyable',   new DestroyableSystem());
   engine.registerSystem('map',           new MapSystem());
   engine.registerSystem('player',        new PlayerSystem());
@@ -85,7 +85,7 @@ const init = async () => {
   engine.registerSingleton(sound);
 
   // Create and register the player entity
-  gameState.players.push(createPlayer(engine));
+  gameState.player = createPlayer(engine);
 
   // Fullscreen button — only shown where the API is available (not iOS Safari)
   const fsBtn = document.getElementById('fullscreen-btn');

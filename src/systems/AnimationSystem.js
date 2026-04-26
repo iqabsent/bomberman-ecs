@@ -50,6 +50,10 @@ export class AnimationSystem {
               animation.frame = frames.length - 1;
               animation.shouldAnimate = false;
               emitEvent(engine, id, { type: EVENT.ANIMATION_COMPLETED });
+              if (animation.onCompleteEvent) {
+                const { targetId, type, payload } = animation.onCompleteEvent;
+                emitEvent(engine, targetId, { type, payload });
+              }
             }
           }
         }

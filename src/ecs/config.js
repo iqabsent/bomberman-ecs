@@ -1,4 +1,4 @@
-export const TEST_MODE = false;
+export const TEST_MODE = true;
 export const DEBUG_MODE = false;
 
 // Game Type Enums
@@ -46,7 +46,6 @@ export const SPAWN = {
 
 
 export const DESTROY = {
-  PENDING:    'PENDING',    // destruction triggered, sequence not yet started
   DESTROYING: 'DESTROYING', // destruction animation running
   DESTROYED:  'DESTROYED'   // animation complete, ready for entity removal
 };

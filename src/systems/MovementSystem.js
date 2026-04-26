@@ -1,5 +1,5 @@
 import { BLOCK_WIDTH, BLOCK_HEIGHT, MAP_WIDTH, MAP_HEIGHT, TYPE, STATE } from '../ecs/config.js';
-import { TRANSFORM, VELOCITY, HEALTH, COLLISION, GRID_PLACEMENT, GAME_STATE } from '../components';
+import { TRANSFORM, VELOCITY, DESTROYABLE, COLLISION, GRID_PLACEMENT, GAME_STATE } from '../components';
 
 export class MovementSystem {
   constructor() {
@@ -18,8 +18,8 @@ export class MovementSystem {
       const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
       if (!transform || !velocity || !gridPlacement) continue;
 
-      const health = engine.getComponent(id, HEALTH);
-      if (health && health.isDying) continue;
+      const destroyable = engine.getComponent(id, DESTROYABLE);
+      if (destroyable && destroyable.destroyState !== null) continue;
 
       const collision = engine.getComponent(id, COLLISION);
       const canPass   = collision ? collision.canPass : 0;

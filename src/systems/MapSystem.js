@@ -49,13 +49,18 @@ export class MapSystem {
     }
 
     const reveals = gameState.softBlocks
-      .map(id => getEvent(engine, id, EVENT.SOFT_BLOCK_DESTROYED))
-      .filter(Boolean);
+      .map(id => ({ id, ev: getEvent(engine, id, EVENT.SOFT_BLOCK_DESTROYED) }))
+      .filter(({ ev }) => ev);
     if (reveals.length === 0) return;
+
+    for (const { id } of reveals) {
+      const idx = gameState.softBlocks.indexOf(id);
+      if (idx > -1) gameState.softBlocks.splice(idx, 1);
+    }
 
     const levelPower = LEVEL[gameState.currentLevel % LEVEL.length].power;
 
-    for (const ev of reveals) {
+    for (const { ev } of reveals) {
       const { gridX, gridY } = ev.payload;
       if (gameState.softBlockCount > 0) gameState.softBlockCount--;
       const n = gameState.softBlockCount;
@@ -63,7 +68,7 @@ export class MapSystem {
       if (!gameState.powerSpawned && (!(n - 1) || Math.random() < 1 / (n - 1))) {
         gameState.powerSpawned = true;
         gameState.gameMap[gridY][gridX] = TYPE.PASSABLE | TYPE.POWER;
-        gameState.powerups.push(createPowerUp(engine, { gridX, gridY, type: levelPower }));
+        gameState.powerup = createPowerUp(engine, { gridX, gridY, type: levelPower });
       } else if (!gameState.doorSpawned && (!n || Math.random() < 1 / n)) {
         gameState.doorSpawned = true;
         gameState.gameMap[gridY][gridX] = TYPE.PASSABLE | TYPE.DOOR;

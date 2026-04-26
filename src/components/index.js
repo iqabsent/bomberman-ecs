@@ -11,7 +11,6 @@ export const FLAME          = 'FlameComponent';
 export const FUSE           = 'FuseComponent';
 export const GAME_STATE     = 'GameStateComponent';
 export const GRID_PLACEMENT = 'GridPlacementComponent';
-export const HEALTH         = 'HealthComponent';
 export const PLAYER         = 'PlayerComponent';
 export const RENDER         = 'RenderComponent';
 export const SOUND          = 'SoundComponent';

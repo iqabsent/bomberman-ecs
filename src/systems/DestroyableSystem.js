@@ -1,5 +1,5 @@
-import { DESTROY, TYPE } from '../ecs/config.js';
-import { GAME_STATE, ANIMATION, DESTROYABLE, GRID_PLACEMENT } from '../components';
+import { DESTROY } from '../ecs/config.js';
+import { GAME_STATE, GAME_STATE_ENTITY, ANIMATION, DESTROYABLE, GRID_PLACEMENT } from '../components';
 import { EVENT } from '../ecs/events.js';
 import { emitEvent, getEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
@@ -10,63 +10,59 @@ export class DestroyableSystem {
 
   apply(engine) {
     clearEventsByType(engine, EVENT.SOFT_BLOCK_DESTROYED);
+    clearEventsByType(engine, EVENT.DOOR_DESTROYED);
+    clearEventsByType(engine, EVENT.POWERUP_DESTROYED);
 
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
-    // Advance any DESTROYING entity to DESTROYED once its animation completes
     for (const id of engine.entities) {
-      const destroyable = engine.getComponent(id, DESTROYABLE);
-      if (!destroyable || destroyable.destroyState !== DESTROY.DESTROYING) continue;
-      const anim = engine.getComponent(id, ANIMATION);
-      if (getEvent(engine, id, EVENT.ANIMATION_COMPLETED)) destroyable.destroyState = DESTROY.DESTROYED;
-    }
-
-    // Soft blocks
-    for (let i = gameState.softBlocks.length - 1; i >= 0; i--) {
-      const id          = gameState.softBlocks[i];
       const destroyable = engine.getComponent(id, DESTROYABLE);
       if (!destroyable) continue;
 
-      if (destroyable.destroyState === DESTROY.PENDING) {
+      // All destroyable entities: advance DESTROYING → DESTROYED when animation completes
+      if (destroyable.destroyState === DESTROY.DESTROYING && getEvent(engine, id, EVENT.ANIMATION_COMPLETED)) {
+        destroyable.destroyState = DESTROY.DESTROYED;
+      }
+
+      // Entities without component-driven behaviour (enemies, player) handle their own lifecycle
+      if (!destroyable.onTriggerEvent && !destroyable.onDestroyedEvent) continue;
+
+      if (destroyable.destroyState === null && getEvent(engine, id, EVENT.DESTROY_TRIGGERED)) {
         destroyable.destroyState = DESTROY.DESTROYING;
-        const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
-        if (gridPlacement) emitEvent(engine, id, { type: EVENT.SOFT_BLOCK_DESTROYED, payload: { gridX: gridPlacement.gridX, gridY: gridPlacement.gridY } });
-        const anim = engine.getComponent(id, ANIMATION);
-        if (anim) { anim.loop = false; anim.shouldAnimate = true; }
+        const gp = engine.getComponent(id, GRID_PLACEMENT);
+        if (gp) {
+          if (destroyable.mapType) gameState.gameMap[gp.gridY][gp.gridX] &= ~destroyable.mapType;
+          const anim = engine.getComponent(id, ANIMATION);
+          if (anim) { anim.loop = false; anim.shouldAnimate = true; }
+          else setFlameOnComplete(engine, gameState, gp.gridX, gp.gridY, id);
+          if (destroyable.onTriggerEvent) {
+            emitEvent(engine, id, { type: destroyable.onTriggerEvent, payload: { gridX: gp.gridX, gridY: gp.gridY } });
+          }
+        }
       }
 
       if (destroyable.destroyState === DESTROY.DESTROYED) {
-        gameState.softBlocks.splice(i, 1);
-        engine.removeEntity(id);
-      }
-    }
-
-    // Power-ups — instant removal, queues PONTAN spawn
-    for (let i = gameState.powerups.length - 1; i >= 0; i--) {
-      const id          = gameState.powerups[i];
-      const destroyable = engine.getComponent(id, DESTROYABLE);
-      if (!destroyable || destroyable.destroyState !== DESTROY.PENDING) continue;
-
-      const gp = engine.getComponent(id, GRID_PLACEMENT);
-      if (gp) {
-        gameState.gameMap[gp.gridY][gp.gridX] &= ~TYPE.POWER;
-        // TODO(events): create PowerUpDestroyedEvent event entity with { gridX, gridY } payload — consider unifying with DoorDestroyedEvent into EnemySpawnQueued (event-entity pattern)
-        gameState.pendingEnemySpawnPowerUp = { gridX: gp.gridX, gridY: gp.gridY };
-      }
-      gameState.powerups.splice(i, 1);
-      engine.removeEntity(id);
-    }
-
-    // Door — destruction queues an enemy spawn for EnemySystem to handle once flames clear
-    if (gameState.door) {
-      const destroyable = engine.getComponent(gameState.door, DESTROYABLE);
-      if (destroyable && destroyable.destroyState === DESTROY.PENDING) {
-        destroyable.destroyState = DESTROY.DESTROYING;
-        const gridPlacement = engine.getComponent(gameState.door, GRID_PLACEMENT);
-        // TODO(events): replace with EnemySpawnQueued event entity (event-entity pattern) — multi-frame persistent state
-        gameState.pendingEnemySpawnDoor = { gridX: gridPlacement.gridX, gridY: gridPlacement.gridY };
+        const gp = engine.getComponent(id, GRID_PLACEMENT);
+        if (destroyable.onDestroyedEvent && gp) {
+          emitEvent(engine, GAME_STATE_ENTITY, { type: destroyable.onDestroyedEvent, payload: { gridX: gp.gridX, gridY: gp.gridY } });
+        }
+        if (destroyable.shouldPersist) {
+          engine.removeComponent(id, DESTROYABLE);
+        } else {
+          engine.removeEntity(id);
+        }
       }
     }
   }
+}
+
+function setFlameOnComplete(engine, gameState, gridX, gridY, targetId) {
+  const flameId = gameState.flames.find(fid => {
+    const fp = engine.getComponent(fid, GRID_PLACEMENT);
+    return fp && fp.gridX === gridX && fp.gridY === gridY;
+  });
+  if (!flameId) return;
+  const anim = engine.getComponent(flameId, ANIMATION);
+  if (anim) anim.onCompleteEvent = { targetId, type: EVENT.ANIMATION_COMPLETED };
 }

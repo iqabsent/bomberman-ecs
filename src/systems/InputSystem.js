@@ -1,4 +1,4 @@
-import { PLAYER, HEALTH, GAME_STATE } from '../components';
+import { PLAYER, DESTROYABLE, GAME_STATE } from '../components';
 import { soundManager } from '../utils/SoundManager.js';
 import { STATE } from '../ecs/config.js';
 import { EVENT } from '../ecs/events.js';
@@ -52,30 +52,28 @@ export class InputSystem {
     }
 
     if (gameState.currentState === STATE.PLAYING && !engine.paused) {
-      for (const id of gameState.players) {
-        const player = engine.getComponent(id, PLAYER);
-        if (!player) continue;
-
-        const health = engine.getComponent(id, HEALTH);
-        if (health?.isDying) {
+      const id = gameState.player;
+      const player = engine.getComponent(id, PLAYER);
+      if (player) {
+        const destroyable = engine.getComponent(id, DESTROYABLE);
+        if (destroyable?.destroyState !== null) {
           player.inputDx = 0;
           player.inputDy = 0;
-          continue;
-        }
+        } else {
+          // One axis at a time — no diagonal movement in Bomberman
+          player.inputDx = 0;
+          player.inputDy = 0;
+          if      (this.keyStates.has('ArrowLeft'))  player.inputDx = -1;
+          else if (this.keyStates.has('ArrowRight')) player.inputDx =  1;
+          else if (this.keyStates.has('ArrowUp'))    player.inputDy = -1;
+          else if (this.keyStates.has('ArrowDown'))  player.inputDy =  1;
 
-        // One axis at a time — no diagonal movement in Bomberman
-        player.inputDx = 0;
-        player.inputDy = 0;
-        if      (this.keyStates.has('ArrowLeft'))  player.inputDx = -1;
-        else if (this.keyStates.has('ArrowRight')) player.inputDx =  1;
-        else if (this.keyStates.has('ArrowUp'))    player.inputDy = -1;
-        else if (this.keyStates.has('ArrowDown'))  player.inputDy =  1;
-
-        if (this.keyStates.has('KeyS') && player.activeBombs < player.maxBombs) {
-          emitEvent(engine, id, { type: EVENT.BOMB_PLACEMENT_INTENT });
-        }
-        if (this.justPressed.has('KeyD') && player.canDetonate) {
-          emitEvent(engine, id, { type: EVENT.BOMB_DETONATION_INTENT });
+          if (this.keyStates.has('KeyS') && player.activeBombs < player.maxBombs) {
+            emitEvent(engine, id, { type: EVENT.BOMB_PLACEMENT_INTENT });
+          }
+          if (this.justPressed.has('KeyD') && player.canDetonate) {
+            emitEvent(engine, id, { type: EVENT.BOMB_DETONATION_INTENT });
+          }
         }
       }
     }

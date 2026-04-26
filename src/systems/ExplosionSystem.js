@@ -1,13 +1,14 @@
 import { TYPE } from '../ecs/config.js';
-import { GAME_STATE, FLAME, FUSE, GRID_PLACEMENT } from '../components';
+import { GAME_STATE, FLAME, GRID_PLACEMENT } from '../components';
+import { EVENT } from '../ecs/events.js';
+import { getEvent } from '../ecs/eventHelpers.js';
 
 export class ExplosionSystem {
   constructor() {
     this.name = 'explosion';
   }
 
-  apply(engine, dt) {
-
+  apply(engine) {
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
@@ -15,13 +16,10 @@ export class ExplosionSystem {
 
     for (const flameId of gameState.flames) {
       const flame        = engine.getComponent(flameId, FLAME);
-      const fuse         = engine.getComponent(flameId, FUSE);
       const flamePlacement = engine.getComponent(flameId, GRID_PLACEMENT);
-      if (!flame || !fuse || !flamePlacement) continue;
+      if (!flame || !flamePlacement) continue;
 
-      fuse.ticks -= dt;
-
-      if (fuse.ticks <= 0) {
+      if (getEvent(engine, flameId, EVENT.ANIMATION_COMPLETED)) {
         expired.push(flameId);
       }
     }

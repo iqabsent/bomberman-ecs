@@ -1,9 +1,9 @@
-import { BLOCK_WIDTH, BLOCK_HEIGHT, TYPE, DIRECTIONS, BOMB_CHAIN_FUSE_TICKS, DESTROY } from '../ecs/config.js';
+import { BLOCK_WIDTH, BLOCK_HEIGHT, TYPE, DIRECTIONS, BOMB_CHAIN_FUSE_TICKS } from '../ecs/config.js';
 import { BOMB, DESTROYABLE, FUSE, GAME_STATE, GRID_PLACEMENT, PLAYER, SOUND, TRANSFORM } from '../components';
 import { createBomb } from '../entities/Bomb.js';
 import { createFlame } from '../entities/Flame.js';
 import { EVENT } from '../ecs/events.js';
-import { getEvent } from '../ecs/eventHelpers.js';
+import { getEvent, emitEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
 export class BombSystem {
   constructor() {
@@ -12,33 +12,30 @@ export class BombSystem {
 
   apply(engine, dt) {
 
+    clearEventsByType(engine, EVENT.DESTROY_TRIGGERED);
+
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
+    const id = gameState.player;
+
     // Handle placement requests
-    for (const id of gameState.players) {
+    {
       const player = engine.getComponent(id, PLAYER);
-      if (!player || !getEvent(engine, id, EVENT.BOMB_PLACEMENT_INTENT)) continue;
-      const transform = engine.getComponent(id, TRANSFORM);
-      if (transform) this.tryPlaceBomb(id, transform, player, gameState, engine);
+      if (player && getEvent(engine, id, EVENT.BOMB_PLACEMENT_INTENT)) {
+        const transform = engine.getComponent(id, TRANSFORM);
+        if (transform) this.tryPlaceBomb(id, transform, player, gameState, engine);
+      }
     }
 
-    // Tick fuses and chain delays
+    // Tick fuses
     const toDetonate = [];
     for (const bombId of gameState.bombs) {
-      const bomb        = engine.getComponent(bombId, BOMB);
-      const fuse        = engine.getComponent(bombId, FUSE);
-      const destroyable = engine.getComponent(bombId, DESTROYABLE);
+      const bomb = engine.getComponent(bombId, BOMB);
+      const fuse = engine.getComponent(bombId, FUSE);
       if (!bomb || !fuse) continue;
 
-      // Chain hit — shorten fuse and mark as chained so canDetonate can't block it
-      if (destroyable && destroyable.destroyState === DESTROY.PENDING && !bomb.chained) {
-        bomb.chained = true;
-        fuse.ticks = BOMB_CHAIN_FUSE_TICKS;
-      }
-
-      // Normal fuse — skip if owner has DETONATE (they control detonation manually)
-      // chained bombs always tick down regardless
+      // Normal fuse — skip if owner has DETONATE (chained bombs always tick down regardless)
       if (!bomb.chained) {
         const ownerPlayer = bomb.ownerId
           ? engine.getComponent(bomb.ownerId, PLAYER)
@@ -51,15 +48,15 @@ export class BombSystem {
     }
 
     // D-key detonation — detonate oldest owned bomb (FIFO)
-    for (const id of gameState.players) {
+    {
       const player = engine.getComponent(id, PLAYER);
-      if (!player || !getEvent(engine, id, EVENT.BOMB_DETONATION_INTENT)) continue;
-
-      const bombId = gameState.bombs.find(bid => {
-        const b = engine.getComponent(bid, BOMB);
-        return b && b.ownerId === id;
-      });
-      if (bombId && !toDetonate.includes(bombId)) toDetonate.push(bombId);
+      if (player && getEvent(engine, id, EVENT.BOMB_DETONATION_INTENT)) {
+        const bombId = gameState.bombs.find(bid => {
+          const b = engine.getComponent(bid, BOMB);
+          return b && b.ownerId === id;
+        });
+        if (bombId && !toDetonate.includes(bombId)) toDetonate.push(bombId);
+      }
     }
 
     for (const bombId of toDetonate) {
@@ -126,27 +123,24 @@ export class BombSystem {
           });
           if (softBlockId) {
             const sbDestroyable = engine.getComponent(softBlockId, DESTROYABLE);
-            if (sbDestroyable && !sbDestroyable.destroyState) sbDestroyable.destroyState = DESTROY.PENDING;
+            if (sbDestroyable && sbDestroyable.destroyState === null) emitEvent(engine, softBlockId, { type: EVENT.DESTROY_TRIGGERED });
           }
           hit = true;
           continue;
         }
 
         if (cell & TYPE.POWER) {
-          const entityId = gameState.powerups.find(id => {
-            const gp = engine.getComponent(id, GRID_PLACEMENT);
-            return gp && gp.gridX === tx && gp.gridY === ty;
-          });
+          const entityId = gameState.powerup;
           if (entityId) {
             const puDestroyable = engine.getComponent(entityId, DESTROYABLE);
-            if (puDestroyable && !puDestroyable.destroyState) puDestroyable.destroyState = DESTROY.PENDING;
+            if (puDestroyable && puDestroyable.destroyState === null) emitEvent(engine, entityId, { type: EVENT.DESTROY_TRIGGERED });
           }
         }
 
         if (cell & TYPE.DOOR) {
           if (gameState.door) {
             const doorDestroyable = engine.getComponent(gameState.door, DESTROYABLE);
-            if (doorDestroyable && !doorDestroyable.destroyState) doorDestroyable.destroyState = DESTROY.PENDING;
+            if (doorDestroyable && doorDestroyable.destroyState === null) emitEvent(engine, gameState.door, { type: EVENT.DESTROY_TRIGGERED });
           }
           // Door doesn't block flame spread
         }
@@ -157,8 +151,12 @@ export class BombSystem {
             return gp && gp.gridX === tx && gp.gridY === ty;
           });
           if (chainId) {
-            const chainDestroyable = engine.getComponent(chainId, DESTROYABLE);
-            if (chainDestroyable && !chainDestroyable.destroyState) chainDestroyable.destroyState = DESTROY.PENDING;
+            const chainBomb = engine.getComponent(chainId, BOMB);
+            const chainFuse = engine.getComponent(chainId, FUSE);
+            if (chainBomb && chainFuse && !chainBomb.chained) {
+              chainBomb.chained = true;
+              chainFuse.ticks = BOMB_CHAIN_FUSE_TICKS;
+            }
           }
           hit = true;
         }

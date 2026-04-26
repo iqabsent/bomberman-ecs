@@ -1,5 +1,5 @@
-import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPAWN, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER, TYPE, POWER, LEVEL } from '../ecs/config.js';
-import { GRID_PLACEMENT, GAME_STATE, TRANSFORM, VELOCITY, ANIMATION, PLAYER, HEALTH, SOUND, COLLECTIBLE, COLLISION } from '../components';
+import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPAWN, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER, TYPE, POWER, LEVEL, DESTROY } from '../ecs/config.js';
+import { GRID_PLACEMENT, GAME_STATE, TRANSFORM, VELOCITY, ANIMATION, PLAYER, SOUND, COLLECTIBLE, COLLISION, DESTROYABLE } from '../components';
 import { EVENT } from '../ecs/events.js';
 import { emitEvent, getEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
@@ -14,56 +14,52 @@ export class PlayerSystem {
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
-    // Flag dying players for respawn — arriving from PLAYER_DIED with health.isDying still set
+    const id = gameState.player;
+
+    // Flag dying player for respawn — arriving from PLAYER_DIED with destroyState still set
     if (gameState.currentState === STATE.LEVEL_START) {
-      for (const id of gameState.players) {
-        const player = engine.getComponent(id, PLAYER);
-        const health = engine.getComponent(id, HEALTH);
-        if (player && health && health.isDying) emitEvent(engine, id, { type: EVENT.SPAWN_INTENT, payload: SPAWN.RESPAWN });
-      }
+      const player     = engine.getComponent(id, PLAYER);
+      const destroyable = engine.getComponent(id, DESTROYABLE);
+      if (player && destroyable?.destroyState !== null) emitEvent(engine, id, { type: EVENT.SPAWN_INTENT, payload: SPAWN.RESPAWN });
     }
 
-    // Process pending spawns regardless of game state — may be set during LOADING or LEVEL_START
-    for (const id of gameState.players) {
+    // Process pending spawn regardless of game state — may be set during LOADING or LEVEL_START
+    {
       const player     = engine.getComponent(id, PLAYER);
       const spawnEvent = getEvent(engine, id, EVENT.SPAWN_INTENT);
-      if (!player || !spawnEvent) continue;
-
-      const transform     = engine.getComponent(id, TRANSFORM);
-      const velocity      = engine.getComponent(id, VELOCITY);
-      const anim          = engine.getComponent(id, ANIMATION);
-      const health        = engine.getComponent(id, HEALTH);
-      const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
-      const collision     = engine.getComponent(id, COLLISION);
-      PlayerSystem.spawnPlayer(player, transform, velocity, anim, health, gridPlacement, collision);
-      if (spawnEvent.payload === SPAWN.GAME_SPAWN) {
-        PlayerSystem.resetPlayerStats(player, collision);
-        gameState.playerInvincible = false;
+      if (player && spawnEvent) {
+        const transform     = engine.getComponent(id, TRANSFORM);
+        const velocity      = engine.getComponent(id, VELOCITY);
+        const anim          = engine.getComponent(id, ANIMATION);
+        const destroyable   = engine.getComponent(id, DESTROYABLE);
+        const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
+        const collision     = engine.getComponent(id, COLLISION);
+        PlayerSystem.spawnPlayer(player, transform, velocity, anim, destroyable, gridPlacement, collision);
+        if (spawnEvent.payload === SPAWN.GAME_SPAWN) {
+          PlayerSystem.resetPlayerStats(player, collision);
+          gameState.playerInvincible = false;
+        }
       }
     }
 
     if (gameState.currentState === STATE.LEVEL_CLEAR || gameState.currentState === STATE.PLAYER_DIED) {
-      for (const id of gameState.players) {
-        const velocity = engine.getComponent(id, VELOCITY);
-        const anim     = engine.getComponent(id, ANIMATION);
-        if (velocity) { velocity.vx = 0; velocity.vy = 0; }
-        if (anim)     anim.shouldAnimate = false;
-      }
+      const velocity = engine.getComponent(id, VELOCITY);
+      const anim     = engine.getComponent(id, ANIMATION);
+      if (velocity) { velocity.vx = 0; velocity.vy = 0; }
+      if (anim)     anim.shouldAnimate = false;
     }
 
     if (gameState.currentState === STATE.PLAYING) {
       const { gameMap } = gameState;
 
-      for (const id of gameState.players) {
-        const player = engine.getComponent(id, PLAYER);
-        if (!player) continue;
-
-        const health    = engine.getComponent(id, HEALTH);
-        const anim      = engine.getComponent(id, ANIMATION);
-        const transform = engine.getComponent(id, TRANSFORM);
-        const velocity  = engine.getComponent(id, VELOCITY);
-        const collision = engine.getComponent(id, COLLISION);
-        if (!health || !anim || !transform || !velocity) continue;
+      const player = engine.getComponent(id, PLAYER);
+      playerTick: if (player) {
+        const destroyable = engine.getComponent(id, DESTROYABLE);
+        const anim        = engine.getComponent(id, ANIMATION);
+        const transform   = engine.getComponent(id, TRANSFORM);
+        const velocity    = engine.getComponent(id, VELOCITY);
+        const collision   = engine.getComponent(id, COLLISION);
+        if (!destroyable || !anim || !transform || !velocity) break playerTick;
 
         // Tick invincibility down every frame regardless of explosions
         if (player.invincibilityTimer > 0) {
@@ -78,14 +74,14 @@ export class PlayerSystem {
           }
         }
 
-        health.immune = player.invincibilityTimer > 0 || player.fireproof;
+        const immune = player.invincibilityTimer > 0 || player.fireproof;
 
-        if (!health.isDying) {
-          if (getEvent(engine, id, EVENT.DAMAGE_FIRE)  && !health.immune)                health.isDying = true;
-          if (getEvent(engine, id, EVENT.DAMAGE_ENEMY) && player.invincibilityTimer <= 0) health.isDying = true;
+        if (destroyable.destroyState === null) {
+          if (getEvent(engine, id, EVENT.DAMAGE_FIRE)  && !immune)                       emitEvent(engine, id, { type: EVENT.DESTROY_TRIGGERED });
+          if (getEvent(engine, id, EVENT.DAMAGE_ENEMY) && player.invincibilityTimer <= 0) emitEvent(engine, id, { type: EVENT.DESTROY_TRIGGERED });
         }
 
-        if (!health.isDying) {
+        if (destroyable.destroyState === null && !getEvent(engine, id, EVENT.DESTROY_TRIGGERED)) {
           // Apply input direction to velocity and animation
           const inv = player.invincibilityTimer > 0;
           velocity.vx = player.inputDx * player.movementSpeed;
@@ -111,10 +107,7 @@ export class PlayerSystem {
             const cell  = gameMap[gridY]?.[gridX];
 
             if (cell & TYPE.POWER) {
-              const entityId = gameState.powerups.find(pid => {
-                const gp = engine.getComponent(pid, GRID_PLACEMENT);
-                return gp && gp.gridX === gridX && gp.gridY === gridY;
-              });
+              const entityId = gameState.powerup;
               if (entityId) {
                 const collectible = engine.getComponent(entityId, COLLECTIBLE);
                 if (collectible && !getEvent(engine, entityId, EVENT.PICKED_UP)) {
@@ -129,38 +122,38 @@ export class PlayerSystem {
               }
             }
 
-            if (cell & TYPE.DOOR && !gameState.enemies.some(eid => !engine.getComponent(eid, HEALTH)?.isDying)) {
+            if (cell & TYPE.DOOR && !gameState.enemies.some(eid => engine.getComponent(eid, DESTROYABLE)?.destroyState === null)) {
               gameState.toLevelClearState();
             }
           }
 
-          continue;
+          break playerTick;
         }
 
         // First frame of death — kick off the animation
-        if (!health.deathAnimStarted) {
-          health.deathAnimStarted = true;
+        if (getEvent(engine, id, EVENT.DESTROY_TRIGGERED)) {
+          destroyable.destroyState = DESTROY.DESTROYING;
           velocity.vx = 0;
           velocity.vy = 0;
           anim.animationKey = 'MAN_DEATH';
           anim.loop = false;
           anim.shouldAnimate = true;
           engine.getSingleton(SOUND).queue.push('burn');
-          continue;
+          break playerTick;
         }
 
         // Still playing — wait for death animation to complete
-        if (anim.shouldAnimate) continue;
+        if (!getEvent(engine, id, EVENT.ANIMATION_COMPLETED)) break playerTick;
 
         // Animation complete — handle death
         gameState.lives--;
         if (gameState.lives > 0) {
           velocity.vx = 0;
           velocity.vy = 0;
-          // Leave health.isDying = true — PlayerSystem flags RESPAWN when LEVEL_START begins
+          // Leave destroyState as DESTROYING — PlayerSystem flags RESPAWN when LEVEL_START begins
           gameState.toPlayerDiedState();
         } else {
-          // Game over — leave isDying true so input/collision stay disabled
+          // Game over — leave destroyState set so input/collision stay disabled
           gameState.toGameOverState();
         }
       }
@@ -168,7 +161,7 @@ export class PlayerSystem {
     }
   }
 
-  static spawnPlayer(player, transform, velocity, anim, health, gridPlacement, collision) {
+  static spawnPlayer(player, transform, velocity, anim, destroyable, gridPlacement, collision) {
     if (!transform || !velocity || !anim) return;
     transform.x = BLOCK_WIDTH;
     transform.y = BLOCK_HEIGHT;
@@ -176,7 +169,7 @@ export class PlayerSystem {
     velocity.vx = 0;
     velocity.vy = 0;
     player.activeBombs = 0;
-    if (health) { health.isDying = false; health.deathAnimStarted = false; health.immune = player.invincibilityTimer > 0 || player.fireproof; }
+    if (destroyable) destroyable.destroyState = null;
     anim.animationKey = player.invincibilityTimer > 0 ? 'MAN_I_DOWN' : 'MAN_DOWN';
     anim.loop = true;
     anim.shouldAnimate = false;

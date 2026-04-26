@@ -11,7 +11,7 @@ export class CameraSystem {
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
-    const playerId = gameState.players[0];
+    const playerId = gameState.player;
     if (!playerId) return;
     const playerTransform = engine.getComponent(playerId, TRANSFORM);
     if (!playerTransform) return;

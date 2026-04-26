@@ -8,10 +8,10 @@ export class GameStateComponent {
     this.currentLevel = 0;
     this.lives = 0;
     this.score = 0;
-    this.players = [];
+    this.player = null;
     this.bombs = [];
     this.flames = [];
-    this.powerups = [];
+    this.powerup = null;
     this.enemies = [];
     this.softBlocks = [];
     this.door = null;
@@ -25,10 +25,6 @@ export class GameStateComponent {
     this.softBlockCount = 0;
     this.powerSpawned = false;
     this.doorSpawned = false;
-
-    // TODO(events): replace with EnemySpawnQueued event entities (event-entity pattern) — multi-frame persistent state, needs dedicated component
-    this.pendingEnemySpawnDoor    = null;
-    this.pendingEnemySpawnPowerUp = null;
 
     // TODO(events): replace with LevelPowerCollectedEvent event entity; MusicSystem queries for it (event-entity pattern)
     this.levelPowerCollected = false;

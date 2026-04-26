@@ -3,6 +3,7 @@ import { RenderComponent } from '../components/RenderComponent.js';
 import { DestroyableComponent } from '../components/DestroyableComponent.js';
 import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
 import { BLOCK_WIDTH, BLOCK_HEIGHT, RENDER_LAYER_DOOR } from '../ecs/config.js';
+import { EVENT } from '../ecs/events.js';
 
 export function createDoor(engine, { gridX, gridY }) {
   const id = 'door'; // only one door per level
@@ -10,7 +11,7 @@ export function createDoor(engine, { gridX, gridY }) {
   engine.addComponent(id, new TransformComponent({ x: gridX * BLOCK_WIDTH, y: gridY * BLOCK_HEIGHT }));
   engine.addComponent(id, new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_DOOR, spriteKey: 'DOOR' }));
   engine.addComponent(id, new GridPlacementComponent({ gridX, gridY }));
-  engine.addComponent(id, new DestroyableComponent());
+  engine.addComponent(id, new DestroyableComponent({ shouldPersist: true, onDestroyedEvent: EVENT.DOOR_DESTROYED }));
 
   return id;
 }

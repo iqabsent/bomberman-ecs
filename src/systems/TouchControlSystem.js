@@ -1,4 +1,4 @@
-import { PLAYER, HEALTH, GAME_STATE } from '../components';
+import { PLAYER, DESTROYABLE, GAME_STATE } from '../components';
 import { STATE } from '../ecs/config.js';
 import { soundManager } from '../utils/SoundManager.js';
 import { EVENT } from '../ecs/events.js';
@@ -58,11 +58,10 @@ export class TouchInputSystem {
     }
 
     if (gameState.currentState === STATE.PLAYING && !engine.paused) {
-      for (const id of gameState.players) {
-        const player = engine.getComponent(id, PLAYER);
-        if (!player) continue;
-        const health = engine.getComponent(id, HEALTH);
-        if (health?.isDying) continue;
+      const id = gameState.player;
+      const player     = engine.getComponent(id, PLAYER);
+      const destroyable = engine.getComponent(id, DESTROYABLE);
+      if (player && destroyable?.destroyState === null) {
 
         // D-pad: if any touch direction is held, fully override keyboard directional input
         const touchDx = this._held.has('LEFT') ? -1 : this._held.has('RIGHT') ? 1 : null;

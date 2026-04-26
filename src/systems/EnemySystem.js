@@ -2,7 +2,7 @@ import {
   BLOCK_WIDTH, BLOCK_HEIGHT, MAP_WIDTH, MAP_HEIGHT,
   TYPE, DIRECTIONS, ENEMY, LEVEL, STATE, DESTROY
 } from '../ecs/config.js';
-import { GAME_STATE, GAME_STATE_ENTITY, TRANSFORM, ANIMATION, RENDER, ENEMY as ENEMY_C, HEALTH, VELOCITY, COLLISION, DESTROYABLE, GRID_PLACEMENT, SOUND } from '../components';
+import { GAME_STATE, GAME_STATE_ENTITY, TRANSFORM, ANIMATION, RENDER, ENEMY as ENEMY_C, VELOCITY, COLLISION, DESTROYABLE, GRID_PLACEMENT, SOUND } from '../components';
 import { createEnemy as createEnemyEntity } from '../entities/Enemy.js';
 import { EVENT } from '../ecs/events.js';
 import { getEvent } from '../ecs/eventHelpers.js';
@@ -48,39 +48,25 @@ export class EnemySystem {
     }
 
     if (gameState.currentState === STATE.PLAYING) {
-      // TODO(events): query for DoorDestroyedEvent event entities instead of pendingEnemySpawnDoor (event-entity pattern)
-      if (gameState.pendingEnemySpawnDoor) {
-        const { gridX, gridY } = gameState.pendingEnemySpawnDoor;
-        const flamesOnCell = gameState.flames.some(id => {
-          const gp = engine.getComponent(id, GRID_PLACEMENT);
-          return gp && gp.gridX === gridX && gp.gridY === gridY;
-        });
-        if (!flamesOnCell) {
-          const nextLevelData = LEVEL[(gameState.currentLevel + 1) % LEVEL.length];
-          const enemyType     = Object.keys(nextLevelData.enemies).slice(-1)[0];
-          const stats         = ENEMY[enemyType];
-          if (stats) {
-            for (let j = 0; j < 8; j++) {
-              gameState.enemies.push(EnemySystem.createEnemy(enemyType, stats, gridX, gridY, engine));
-            }
+      const doorDestroyed = getEvent(engine, GAME_STATE_ENTITY, EVENT.DOOR_DESTROYED);
+      if (doorDestroyed) {
+        const { gridX, gridY } = doorDestroyed.payload;
+        const nextLevelData = LEVEL[(gameState.currentLevel + 1) % LEVEL.length];
+        const enemyType     = Object.keys(nextLevelData.enemies).slice(-1)[0];
+        const stats         = ENEMY[enemyType];
+        if (stats) {
+          for (let j = 0; j < 8; j++) {
+            gameState.enemies.push(EnemySystem.createEnemy(enemyType, stats, gridX, gridY, engine));
           }
-          gameState.pendingEnemySpawnDoor = null;
         }
       }
 
-      // TODO(events): query for PowerUpDestroyedEvent event entities instead, or a unified EnemySpawnQueued event (event-entity pattern)
-      if (gameState.pendingEnemySpawnPowerUp) {
-        const { gridX, gridY } = gameState.pendingEnemySpawnPowerUp;
-        const flamesOnCell = gameState.flames.some(id => {
-          const gp = engine.getComponent(id, GRID_PLACEMENT);
-          return gp && gp.gridX === gridX && gp.gridY === gridY;
-        });
-        if (!flamesOnCell) {
-          const stats = ENEMY['PONTAN'];
-          for (let j = 0; j < 8; j++) {
-            gameState.enemies.push(EnemySystem.createEnemy('PONTAN', stats, gridX, gridY, engine));
-          }
-          gameState.pendingEnemySpawnPowerUp = null;
+      const powerupDestroyed = getEvent(engine, GAME_STATE_ENTITY, EVENT.POWERUP_DESTROYED);
+      if (powerupDestroyed) {
+        const { gridX, gridY } = powerupDestroyed.payload;
+        const stats = ENEMY['PONTAN'];
+        for (let j = 0; j < 8; j++) {
+          gameState.enemies.push(EnemySystem.createEnemy('PONTAN', stats, gridX, gridY, engine));
         }
       }
 
@@ -97,18 +83,17 @@ export class EnemySystem {
 
       for (let i = gameState.enemies.length - 1; i >= 0; i--) {
         const entityId     = gameState.enemies[i];
-        const enemy        = engine.getComponent(entityId, ENEMY_C);
-        const health       = engine.getComponent(entityId, HEALTH);
-        if (!enemy || !health || health.isDying) continue;
+        const enemy       = engine.getComponent(entityId, ENEMY_C);
+        const destroyable = engine.getComponent(entityId, DESTROYABLE);
+        if (!enemy || !destroyable || destroyable.destroyState !== null) continue;
 
         const transform     = engine.getComponent(entityId, TRANSFORM);
         const gridPlacement = engine.getComponent(entityId, GRID_PLACEMENT);
         const anim          = engine.getComponent(entityId, ANIMATION);
         const render        = engine.getComponent(entityId, RENDER);
-        const destroyable   = engine.getComponent(entityId, DESTROYABLE);
 
-        if (getEvent(engine, entityId, EVENT.DAMAGE_FIRE)) {
-          this.killEnemy(enemy, health, anim, render, destroyable, gameState, engine);
+        if (getEvent(engine, entityId, EVENT.DESTROY_TRIGGERED)) {
+          this.killEnemy(enemy, anim, render, destroyable, gameState, engine);
           continue;
         }
 
@@ -174,8 +159,7 @@ export class EnemySystem {
     anim.loop = true;
   }
 
-  killEnemy(enemy, health, anim, render, destroyable, gameState, engine) {
-    health.isDying = true;
+  killEnemy(enemy, anim, render, destroyable, gameState, engine) {
     destroyable.destroyState = DESTROY.DESTROYING;
     render.sprite = null;
     render.spriteKey = enemy.type + '_DEATH';
@@ -185,7 +169,7 @@ export class EnemySystem {
 
     gameState.score += enemy.points;
 
-    if (!gameState.enemies.some(id => !engine.getComponent(id, HEALTH)?.isDying)) {
+    if (!gameState.enemies.some(id => engine.getComponent(id, DESTROYABLE)?.destroyState === null)) {
       engine.getSingleton(SOUND).queue.push('pause');
     }
   }

@@ -21,9 +21,7 @@ export class LevelSystem {
         // Remove all old entities before MapSystem/EnemySystem spawn new ones
         LevelSystem.removeAllLevelEntities(gameState, engine);
         const spawnType = gameState.previousState === STATE.TITLE ? SPAWN.GAME_SPAWN : SPAWN.LEVEL_SPAWN;
-        for (const id of gameState.players) {
-          emitEvent(engine, id, { type: EVENT.SPAWN_INTENT, payload: spawnType });
-        }
+        emitEvent(engine, gameState.player, { type: EVENT.SPAWN_INTENT, payload: spawnType });
 
         // Reset game state based on where we came from
         if (gameState.previousState === STATE.LEVEL_CLEAR) {
@@ -57,20 +55,18 @@ export class LevelSystem {
     gameState.doorSpawned = false;
     gameState.door = null;
     gameState.gameMap = null;
-    gameState.powerups = [];
+    gameState.powerup = null;
     gameState.bombs = [];
     gameState.flames = [];
     gameState.enemies = [];
     gameState.softBlocks = [];
-    gameState.pendingEnemySpawnDoor    = null;
-    gameState.pendingEnemySpawnPowerUp = null;
     gameState.levelPowerCollected    = false;
   }
 
   static removeAllLevelEntities(gameState, engine) {
     for (const id of gameState.enemies)      engine.removeEntity(id);
     for (const id of gameState.bombs)        engine.removeEntity(id);
-    for (const id of gameState.powerups)     engine.removeEntity(id);
+    if (gameState.powerup) engine.removeEntity(gameState.powerup);
     for (const id of gameState.softBlocks)   engine.removeEntity(id);
     for (const id of gameState.flames)       engine.removeEntity(id);
     if (gameState.door) engine.removeEntity(gameState.door);

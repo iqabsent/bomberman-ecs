@@ -9,5 +9,6 @@ export class AnimationComponent {
     this.loop = loop;
     this.shouldAnimate = shouldAnimate;
     this.delay = delay;
+    this.onCompleteEvent = null;
   }
 }

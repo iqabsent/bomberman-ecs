@@ -1,5 +1,5 @@
 import { STATE, TYPE } from '../ecs/config.js';
-import { GAME_STATE, ENEMY, TRANSFORM, ANIMATION, PLAYER, HEALTH, COLLISION } from '../components';
+import { GAME_STATE, ENEMY, TRANSFORM, ANIMATION, PLAYER, DESTROYABLE, COLLISION } from '../components';
 
 const STATE_NAMES = Object.fromEntries(Object.entries(STATE).map(([k, v]) => [v, k]));
 
@@ -19,9 +19,9 @@ export class DebugSystem {
 
     const gameState = engine.getSingleton(GAME_STATE);
 
-    const playerId  = gameState?.players[0];
+    const playerId  = gameState?.player;
     const player    = playerId ? engine.getComponent(playerId, PLAYER)    : null;
-    const health    = playerId ? engine.getComponent(playerId, HEALTH)    : null;
+    const destroyable = playerId ? engine.getComponent(playerId, DESTROYABLE) : null;
     const transform = playerId ? engine.getComponent(playerId, TRANSFORM) : null;
     const anim      = playerId ? engine.getComponent(playerId, ANIMATION) : null;
     const collision = playerId ? engine.getComponent(playerId, COLLISION) : null;
@@ -50,7 +50,7 @@ export class DebugSystem {
         val('bombs', gameState.bombs.length) + ' &nbsp; ' +
         val('flames', gameState.flames.length) + ' &nbsp; ' +
         val('softblocks', gameState.softBlocks.length) + ' &nbsp; ' +
-        val('powerups', gameState.powerups.length) + ' &nbsp; ' +
+        val('powerup', gameState.powerup ? 1 : 0) + ' &nbsp; ' +
         flag('door', !!gameState.door)
       );
     }
@@ -67,8 +67,7 @@ export class DebugSystem {
       );
       lines.push(
         `<b>FLAGS &nbsp;</b> ` +
-        flag('isDying', health?.isDying) + ' &nbsp; ' +
-        flag('deathAnimStarted', health?.deathAnimStarted) + ' &nbsp; ' +
+        val('destroyState', destroyable?.destroyState ?? 'null') + ' &nbsp; ' +
         flag('canDetonate', player?.canDetonate) + ' &nbsp; ' +
         flag('canPassBomb', collision?.canPass & TYPE.BOMB) + ' &nbsp; ' +
         flag('canPassWall', collision?.canPass & TYPE.SOFT_BLOCK) + ' &nbsp; ' +
