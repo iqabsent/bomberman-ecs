@@ -1,4 +1,4 @@
-import { PLAYER, DESTROYABLE, GAME_STATE } from '../components';
+import { PLAYER, DESTROYABLE, GAME_STATE, GAME_STATE_ENTITY } from '../components';
 import { soundManager } from '../utils/SoundManager.js';
 import { STATE } from '../ecs/config.js';
 import { EVENT } from '../ecs/events.js';
@@ -23,6 +23,7 @@ export class InputSystem {
   apply(engine) {
     clearEventsByType(engine, EVENT.BOMB_PLACEMENT_INTENT);
     clearEventsByType(engine, EVENT.BOMB_DETONATION_INTENT);
+    clearEventsByType(engine, EVENT.LOAD_REQUESTED);
 
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) {
@@ -31,7 +32,7 @@ export class InputSystem {
     }
 
     if (gameState.currentState === STATE.TITLE && this.justPressed.has('KeyS')) {
-      gameState.toLoadingState();
+      emitEvent(engine, GAME_STATE_ENTITY, { type: EVENT.LOAD_REQUESTED, payload: { reason: 'new_game' } });
     }
 
     if (this.justPressed.has('KeyM')) {
@@ -41,7 +42,7 @@ export class InputSystem {
     if (this.justPressed.has('KeyP') &&
         (gameState.currentState === STATE.PLAYING || gameState.currentState === STATE.PAUSED)) {
       const wasPaused = engine.paused;
-      wasPaused ? gameState.toResumedState() : gameState.toPausedState();
+      gameState.currentState = wasPaused ? STATE.PLAYING : STATE.PAUSED;
       engine.paused = !engine.paused;
       if (wasPaused) {
         soundManager.resumeAll();

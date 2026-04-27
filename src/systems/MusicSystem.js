@@ -1,5 +1,7 @@
 import { STATE } from '../ecs/config.js';
-import { GAME_STATE } from '../components';
+import { GAME_STATE, GAME_STATE_ENTITY } from '../components';
+import { EVENT } from '../ecs/events.js';
+import { emitEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 import { soundManager } from '../utils/SoundManager.js';
 
 export class MusicSystem {
@@ -8,31 +10,29 @@ export class MusicSystem {
     this.runsWhenPaused = true;
     this._lastMusicKey = null;
     this._muted = false;
-    // Callback to fire when the current one-shot track finishes
-    this._onMusicEnd = null;
-    // State transition to apply next tick (set by one-shot callback or poll)
-    this._pendingTransition = null;
+    this._waitingForEnd = false;
+    // Deferred flag: set by onended callback or poll; emitted as MUSIC_COMPLETE next tick
+    // to avoid mutating shared state from within an async audio event
+    this._pendingMusicComplete = false;
   }
 
   apply(engine) {
+    clearEventsByType(engine, EVENT.MUSIC_COMPLETE);
+
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
-    // Apply any deferred state transition from a finished one-shot track.
-    // The transition is set via _pendingTransition rather than applied directly in the onended
-    // callback to avoid mutating game state from within an async audio event.
-    if (this._pendingTransition) {
-      const method = this._pendingTransition;
-      this._pendingTransition = null;
-      this._onMusicEnd = null;
-      gameState[method]();
+    if (this._pendingMusicComplete) {
+      this._pendingMusicComplete = false;
+      this._waitingForEnd = false;
+      emitEvent(engine, GAME_STATE_ENTITY, { type: EVENT.MUSIC_COMPLETE });
       return;
     }
 
     // Poll each tick as a fallback — handles the case where audio was blocked
     // or the onended event didn't fire (e.g. file missing, autoplay policy)
-    if (this._onMusicEnd && soundManager.isMusicDone()) {
-      this._pendingTransition = this._onMusicEnd;
+    if (this._waitingForEnd && soundManager.isMusicDone()) {
+      this._pendingMusicComplete = true;
       return;
     }
 
@@ -43,12 +43,11 @@ export class MusicSystem {
 
     const state = gameState.currentState;
 
-    // Don't interfere while paused — music keeps playing on its own
     if (state === STATE.PAUSED) return;
 
-    let desiredKey       = null;
-    let loop             = false;
-    let oneShotTransition = null;
+    let desiredKey = null;
+    let loop       = false;
+    let oneShot    = false;
 
     switch (state) {
       case STATE.TITLE:
@@ -57,23 +56,23 @@ export class MusicSystem {
         break;
 
       case STATE.LEVEL_START:
-        desiredKey        = 'levelStart';
-        oneShotTransition = 'toLevelState';
+        desiredKey = 'levelStart';
+        oneShot    = true;
         break;
 
       case STATE.LEVEL_CLEAR:
-        desiredKey        = 'stageClear';
-        oneShotTransition = 'toLoadingState';
+        desiredKey = 'stageClear';
+        oneShot    = true;
         break;
 
       case STATE.PLAYER_DIED:
-        desiredKey        = 'miss';
-        oneShotTransition = 'toLevelStartState';
+        desiredKey = 'miss';
+        oneShot    = true;
         break;
 
       case STATE.GAME_OVER:
-        desiredKey        = 'gameOver';
-        oneShotTransition = 'toTitleState';
+        desiredKey = 'gameOver';
+        oneShot    = true;
         break;
 
       case STATE.GAME_WON:
@@ -94,21 +93,18 @@ export class MusicSystem {
       }
 
       default:
-        // LOADING and any other transient states — silence
         desiredKey = null;
     }
 
     if (desiredKey !== this._lastMusicKey) {
-      this._onMusicEnd = null;
+      this._waitingForEnd = false;
 
       if (desiredKey === null) {
         soundManager.stopMusic();
       } else {
-        const onEnded = oneShotTransition
-          ? () => { this._pendingTransition = oneShotTransition; }
-          : null;
+        const onEnded = oneShot ? () => { this._pendingMusicComplete = true; } : null;
         soundManager.playMusic(desiredKey, { loop, onEnded });
-        if (oneShotTransition) this._onMusicEnd = oneShotTransition;
+        if (oneShot) this._waitingForEnd = true;
       }
 
       this._lastMusicKey = desiredKey;

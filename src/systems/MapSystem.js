@@ -1,7 +1,7 @@
-import { STATE, TYPE, MAP_WIDTH, MAP_HEIGHT, LEVEL } from '../ecs/config.js';
-import { GAME_STATE } from '../components';
+import { TYPE, MAP_WIDTH, MAP_HEIGHT, LEVEL } from '../ecs/config.js';
+import { GAME_STATE, GAME_STATE_ENTITY } from '../components';
 import { EVENT } from '../ecs/events.js';
-import { getEvent } from '../ecs/eventHelpers.js';
+import { getEvent, emitEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 import { createSoftBlock } from '../entities/SoftBlock.js';
 import { createPowerUp } from '../entities/PowerUp.js';
 import { createDoor } from '../entities/Door.js';
@@ -12,10 +12,12 @@ export class MapSystem {
   }
 
   apply(engine) {
+    clearEventsByType(engine, EVENT.MAP_LOAD_COMPLETE);
+
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
-    if (gameState.currentState === STATE.LOADING && gameState.mapLoading && !gameState.levelLoading) {
+    if (getEvent(engine, GAME_STATE_ENTITY, EVENT.MAP_LOAD_REQUESTED)) {
       const map = [];
       for (let y = 0; y < MAP_HEIGHT; y++) {
         const row = [];
@@ -44,7 +46,7 @@ export class MapSystem {
         }
       }
 
-      gameState.mapLoading = false;
+      emitEvent(engine, GAME_STATE_ENTITY, { type: EVENT.MAP_LOAD_COMPLETE });
       return;
     }
 

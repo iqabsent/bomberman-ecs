@@ -29,11 +29,11 @@ import { SFX } from './utils/SFX.js';
 import { soundManager } from './utils/SoundManager.js';
 
 function resizeCanvas(canvas) {
-  // In landscape, expand canvas width to fill the viewport — game renders centered at its natural 600×403.
-  // In portrait/square, keep fixed dimensions (CSS aspect-ratio constraint handles visual scaling).
+  const debugEl = document.getElementById('debug');
+  const debugH  = debugEl ? debugEl.offsetHeight : 0;
   if (window.innerWidth > window.innerHeight) {
     canvas.height = CANVAS_HEIGHT;
-    canvas.width = Math.round(window.innerWidth / window.innerHeight * CANVAS_HEIGHT);
+    canvas.width  = Math.round(window.innerWidth / (window.innerHeight - debugH) * CANVAS_HEIGHT);
   } else {
     canvas.width  = CANVAS_WIDTH;
     canvas.height = CANVAS_HEIGHT;
@@ -44,6 +44,8 @@ const init = async () => {
   await assetManager.loadAssets();
   soundManager.load(SFX);
   soundManager.loadMusic(MUSIC);
+
+  if (DEBUG_MODE) document.body.classList.add('debug');
 
   const canvas = document.getElementById('canvas');
   resizeCanvas(canvas);
@@ -76,7 +78,7 @@ const init = async () => {
 
   if (DEBUG_MODE) engine.registerSystem('debug', new DebugSystem());
 
-  // Create game state entity — starts in STATE.LOADING, handled on first tick
+  // Create game state entity — starts in STATE.TITLE
   const gameState = new GameStateComponent();
   engine.addComponent(GAME_STATE_ENTITY, gameState);
   engine.registerSingleton(gameState);

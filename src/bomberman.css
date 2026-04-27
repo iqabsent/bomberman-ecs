@@ -1,9 +1,12 @@
+:root { --debug-h: 0px; }
+
 * { margin: 0; padding: 0; }
 html, body {
   background: #111;
   width: 100%; height: 100%;
   overflow: hidden;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   -webkit-overflow-scrolling: touch;
@@ -12,13 +15,13 @@ canvas {
   touch-action: none;
   background-color: #111;
   display: block;
-  /* Portrait/square: maintain 600:403 aspect ratio, centered */
-  width: min(100vw, calc(100vh * 1.4888));
-  height: min(100vh, calc(100vw * 0.6717));
+  /* Portrait/square: maintain 600:403 aspect ratio, leaving room for debug panel */
+  width: min(100vw, calc((100vh - var(--debug-h)) * 1.4888));
+  height: min(calc(100vh - var(--debug-h)), calc(100vw * 0.6717));
 }
-/* Landscape: fill the full viewport — JS sets logical canvas width to match */
+/* Landscape: fill the full viewport width, subtract debug height */
 @media (orientation: landscape) {
-  canvas { width: 100vw; height: 100vh; }
+  canvas { width: 100vw; height: calc(100vh - var(--debug-h)); }
 }
 #fullscreen-btn {
   position: fixed;
@@ -36,3 +39,19 @@ canvas {
   user-select: none;
 }
 #fullscreen-btn:active { background: rgba(0,0,0,0.7); }
+#debug {
+  display: none;
+  width: 100%;
+  flex-shrink: 0;
+  height: var(--debug-h);
+  font-family: monospace;
+  font-size: 12px;
+  color: #ccc;
+  background: #111;
+  padding: 4px 8px;
+  line-height: 1.8;
+  box-sizing: border-box;
+}
+/* 5 lines × (12px × 1.8) + 8px padding = 116px */
+body.debug { --debug-h: 116px; }
+body.debug #debug { display: block; }

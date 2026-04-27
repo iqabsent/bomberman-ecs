@@ -123,7 +123,7 @@ export class PlayerSystem {
             }
 
             if (cell & TYPE.DOOR && !gameState.enemies.some(eid => engine.getComponent(eid, DESTROYABLE)?.destroyState === null)) {
-              gameState.toLevelClearState();
+              gameState.currentState = STATE.LEVEL_CLEAR;
             }
           }
 
@@ -151,10 +151,10 @@ export class PlayerSystem {
           velocity.vx = 0;
           velocity.vy = 0;
           // Leave destroyState as DESTROYING — PlayerSystem flags RESPAWN when LEVEL_START begins
-          gameState.toPlayerDiedState();
+          gameState.currentState = STATE.PLAYER_DIED;
         } else {
           // Game over — leave destroyState set so input/collision stay disabled
-          gameState.toGameOverState();
+          gameState.currentState = STATE.GAME_OVER;
         }
       }
 

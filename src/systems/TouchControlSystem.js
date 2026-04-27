@@ -1,4 +1,4 @@
-import { PLAYER, DESTROYABLE, GAME_STATE } from '../components';
+import { PLAYER, DESTROYABLE, GAME_STATE, GAME_STATE_ENTITY } from '../components';
 import { STATE } from '../ecs/config.js';
 import { soundManager } from '../utils/SoundManager.js';
 import { EVENT } from '../ecs/events.js';
@@ -38,10 +38,10 @@ export class TouchInputSystem {
     // START: pause/resume or start game from title
     if (this._justPressed.has('START')) {
       if (gameState.currentState === STATE.TITLE) {
-        gameState.toLoadingState();
+        emitEvent(engine, GAME_STATE_ENTITY, { type: EVENT.LOAD_REQUESTED, payload: { reason: 'new_game' } });
       } else if (gameState.currentState === STATE.PLAYING || gameState.currentState === STATE.PAUSED) {
         const wasPaused = engine.paused;
-        wasPaused ? gameState.toResumedState() : gameState.toPausedState();
+        gameState.currentState = wasPaused ? STATE.PLAYING : STATE.PAUSED;
         engine.paused = !engine.paused;
         if (wasPaused) {
           soundManager.resumeAll();

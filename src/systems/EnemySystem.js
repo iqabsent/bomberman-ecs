@@ -5,7 +5,7 @@ import {
 import { GAME_STATE, GAME_STATE_ENTITY, TRANSFORM, ANIMATION, RENDER, ENEMY as ENEMY_C, VELOCITY, COLLISION, DESTROYABLE, GRID_PLACEMENT, SOUND } from '../components';
 import { createEnemy as createEnemyEntity } from '../entities/Enemy.js';
 import { EVENT } from '../ecs/events.js';
-import { getEvent } from '../ecs/eventHelpers.js';
+import { getEvent, emitEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
 // Ticks before death animation starts — original: queue('startDeathAnimation', 5) * 18
 const DEATH_WAIT_TICKS = 90;
@@ -16,11 +16,13 @@ export class EnemySystem {
   }
 
   apply(engine, dt) {
+    clearEventsByType(engine, EVENT.ENEMY_LOAD_COMPLETE);
 
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
-    if (gameState.currentState === STATE.LOADING && gameState.enemyLoading && !gameState.mapLoading && !gameState.levelLoading) {
+    if (gameState.currentState === STATE.LOADING &&
+        getEvent(engine, GAME_STATE_ENTITY, EVENT.MAP_LOAD_COMPLETE)) {
       const levelData = LEVEL[gameState.currentLevel % LEVEL.length];
       for (const [type, count] of Object.entries(levelData.enemies)) {
         const stats = ENEMY[type];
@@ -32,7 +34,7 @@ export class EnemySystem {
           gameState.enemies.push(id);
         }
       }
-      gameState.enemyLoading = false;
+      emitEvent(engine, GAME_STATE_ENTITY, { type: EVENT.ENEMY_LOAD_COMPLETE });
       return;
     }
 
