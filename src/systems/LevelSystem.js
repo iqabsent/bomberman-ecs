@@ -1,5 +1,5 @@
 import { STATE, SPAWN, LEVEL, DEFAULT_LIVES, LEVEL_TIME } from '../ecs/config.js';
-import { GAME_STATE, GAME_STATE_ENTITY } from '../components';
+import { BOMB, ENEMY, FLAME, GAME_STATE, GAME_STATE_ENTITY, SOFT_BLOCK } from '../components';
 import { EVENT } from '../ecs/events.js';
 import { emitEvent, getEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
@@ -44,7 +44,7 @@ export class LevelSystem {
     }
 
     gameState.currentState = STATE.LOADING;
-    LevelSystem.removeAllLevelEntities(gameState, engine);
+    LevelSystem.removeAllLevelEntities(engine);
 
     if (reason === 'level_clear') {
       gameState.currentLevel++;
@@ -58,7 +58,7 @@ export class LevelSystem {
     }
 
     const spawnType = reason === 'new_game' ? SPAWN.GAME_SPAWN : SPAWN.LEVEL_SPAWN;
-    emitEvent(engine, gameState.player, { type: EVENT.SPAWN_INTENT, payload: spawnType });
+    emitEvent(engine, 'player', { type: EVENT.SPAWN_INTENT, payload: spawnType });
     emitEvent(engine, GAME_STATE_ENTITY, { type: EVENT.MAP_LOAD_REQUESTED });
   }
 
@@ -67,22 +67,16 @@ export class LevelSystem {
     gameState.timeUp = false;
     gameState.powerSpawned = false;
     gameState.doorSpawned = false;
-    gameState.door = null;
     gameState.gameMap = null;
-    gameState.powerup = null;
-    gameState.bombs = [];
-    gameState.flames = [];
-    gameState.enemies = [];
-    gameState.softBlocks = [];
     gameState.levelPowerCollected = false;
   }
 
-  static removeAllLevelEntities(gameState, engine) {
-    for (const id of gameState.enemies)    engine.removeEntity(id);
-    for (const id of gameState.bombs)      engine.removeEntity(id);
-    if (gameState.powerup)                 engine.removeEntity(gameState.powerup);
-    for (const id of gameState.softBlocks) engine.removeEntity(id);
-    for (const id of gameState.flames)     engine.removeEntity(id);
-    if (gameState.door)                    engine.removeEntity(gameState.door);
+  static removeAllLevelEntities(engine) {
+    for (const id of engine.query(ENEMY))      engine.removeEntity(id);
+    for (const id of engine.query(BOMB))       engine.removeEntity(id);
+    engine.removeEntity('powerup');
+    for (const id of engine.query(SOFT_BLOCK)) engine.removeEntity(id);
+    for (const id of engine.query(FLAME))      engine.removeEntity(id);
+    engine.removeEntity('door');
   }
 }

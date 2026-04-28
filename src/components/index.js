@@ -13,6 +13,7 @@ export const GAME_STATE     = 'GameStateComponent';
 export const GRID_PLACEMENT = 'GridPlacementComponent';
 export const PLAYER         = 'PlayerComponent';
 export const RENDER         = 'RenderComponent';
+export const SOFT_BLOCK     = 'SoftBlockComponent';
 export const SOUND          = 'SoundComponent';
 export const TRANSFORM      = 'TransformComponent';
 export const VELOCITY       = 'VelocityComponent';

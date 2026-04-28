@@ -1,5 +1,5 @@
 import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPAWN, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER, TYPE, POWER, LEVEL, DESTROY } from '../ecs/config.js';
-import { GRID_PLACEMENT, GAME_STATE, TRANSFORM, VELOCITY, ANIMATION, PLAYER, SOUND, COLLECTIBLE, COLLISION, DESTROYABLE } from '../components';
+import { GRID_PLACEMENT, GAME_STATE, ENEMY, TRANSFORM, VELOCITY, ANIMATION, PLAYER, SOUND, COLLECTIBLE, COLLISION, DESTROYABLE } from '../components';
 import { EVENT } from '../ecs/events.js';
 import { emitEvent, getEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
@@ -14,7 +14,7 @@ export class PlayerSystem {
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
-    const id = gameState.player;
+    const id = 'player';
 
     // Flag dying player for respawn — arriving from PLAYER_DIED with destroyState still set
     if (gameState.currentState === STATE.LEVEL_START) {
@@ -118,23 +118,24 @@ export class PlayerSystem {
             const cell  = gameMap[gridY]?.[gridX];
 
             if (cell & TYPE.POWER) {
-              const entityId = gameState.powerup;
-              if (entityId) {
-                const collectible = engine.getComponent(entityId, COLLECTIBLE);
-                if (collectible && !getEvent(engine, entityId, EVENT.PICKED_UP)) {
-                  PlayerSystem.applyPowerup(player, collision, collectible.type);
-                  if (collectible.type === POWER.INVINCIBLE) gameState.playerInvincible = true;
-                  const levelPower = LEVEL[gameState.currentLevel % LEVEL.length].power;
-                  if (collectible.type === levelPower) gameState.levelPowerCollected = true;
-                  engine.getSingleton(SOUND).queue.push('powerup');
-                  gameState.gameMap[gridY][gridX] &= ~TYPE.POWER;
-                  emitEvent(engine, entityId, { type: EVENT.PICKED_UP });
-                }
+              const collectible = engine.getComponent('powerup', COLLECTIBLE);
+              if (collectible && !getEvent(engine, 'powerup', EVENT.PICKED_UP)) {
+                PlayerSystem.applyPowerup(player, collision, collectible.type);
+                if (collectible.type === POWER.INVINCIBLE) gameState.playerInvincible = true;
+                const levelPower = LEVEL[gameState.currentLevel % LEVEL.length].power;
+                if (collectible.type === levelPower) gameState.levelPowerCollected = true;
+                engine.getSingleton(SOUND).queue.push('powerup');
+                gameState.gameMap[gridY][gridX] &= ~TYPE.POWER;
+                emitEvent(engine, 'powerup', { type: EVENT.PICKED_UP });
               }
             }
 
-            if (cell & TYPE.DOOR && !gameState.enemies.some(eid => engine.getComponent(eid, DESTROYABLE)?.destroyState === null)) {
-              gameState.currentState = STATE.LEVEL_CLEAR;
+            if (cell & TYPE.DOOR) {
+              let anyAlive = false;
+              for (const eid of engine.query(ENEMY)) {
+                if (engine.getComponent(eid, DESTROYABLE)?.destroyState === null) { anyAlive = true; break; }
+              }
+              if (!anyAlive) gameState.currentState = STATE.LEVEL_CLEAR;
             }
           }
 

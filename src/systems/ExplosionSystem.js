@@ -13,35 +13,28 @@ export class ExplosionSystem {
     if (!gameState) return;
 
     const expired = [];
-
-    for (const flameId of gameState.flames) {
-      const flame        = engine.getComponent(flameId, FLAME);
-      const flamePlacement = engine.getComponent(flameId, GRID_PLACEMENT);
-      if (!flame || !flamePlacement) continue;
-
-      if (getEvent(engine, flameId, EVENT.ANIMATION_COMPLETED)) {
-        expired.push(flameId);
-      }
+    for (const flameId of engine.query(FLAME)) {
+      if (getEvent(engine, flameId, EVENT.ANIMATION_COMPLETED)) expired.push(flameId);
     }
 
-    // Remove expired flames and clear their map flags
     for (const flameId of expired) {
       const flamePlacement = engine.getComponent(flameId, GRID_PLACEMENT);
+      engine.removeEntity(flameId);
+
       if (!flamePlacement) continue;
 
-      const idx = gameState.flames.indexOf(flameId);
-      if (idx > -1) gameState.flames.splice(idx, 1);
-
-      // Only clear flag if no other flame still covers this cell
-      const stillBurning = gameState.flames.some(id => {
+      // Only clear EXPLOSION flag if no other flame still covers this cell
+      let stillBurning = false;
+      for (const id of engine.query(FLAME)) {
         const gp = engine.getComponent(id, GRID_PLACEMENT);
-        return gp && gp.gridX === flamePlacement.gridX && gp.gridY === flamePlacement.gridY;
-      });
+        if (gp && gp.gridX === flamePlacement.gridX && gp.gridY === flamePlacement.gridY) {
+          stillBurning = true;
+          break;
+        }
+      }
       if (!stillBurning && gameState.gameMap[flamePlacement.gridY]) {
         gameState.gameMap[flamePlacement.gridY][flamePlacement.gridX] &= ~TYPE.EXPLOSION;
       }
-
-      engine.removeEntity(flameId);
     }
   }
 }

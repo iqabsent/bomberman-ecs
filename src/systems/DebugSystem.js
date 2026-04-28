@@ -1,5 +1,5 @@
 import { STATE, TYPE } from '../ecs/config.js';
-import { GAME_STATE, ENEMY, TRANSFORM, ANIMATION, PLAYER, DESTROYABLE, COLLISION } from '../components';
+import { BOMB, ENEMY, FLAME, GAME_STATE, SOFT_BLOCK, TRANSFORM, ANIMATION, PLAYER, DESTROYABLE, COLLISION } from '../components';
 
 const STATE_NAMES = Object.fromEntries(Object.entries(STATE).map(([k, v]) => [v, k]));
 
@@ -19,12 +19,11 @@ export class DebugSystem {
 
     const gameState = engine.getSingleton(GAME_STATE);
 
-    const playerId  = gameState?.player;
-    const player    = playerId ? engine.getComponent(playerId, PLAYER)    : null;
-    const destroyable = playerId ? engine.getComponent(playerId, DESTROYABLE) : null;
-    const transform = playerId ? engine.getComponent(playerId, TRANSFORM) : null;
-    const anim      = playerId ? engine.getComponent(playerId, ANIMATION) : null;
-    const collision = playerId ? engine.getComponent(playerId, COLLISION) : null;
+    const player    = engine.getComponent('player', PLAYER);
+    const destroyable = engine.getComponent('player', DESTROYABLE);
+    const transform = engine.getComponent('player', TRANSFORM);
+    const anim      = engine.getComponent('player', ANIMATION);
+    const collision = engine.getComponent('player', COLLISION);
 
     this._dtHistory.push(dt);
     if (this._dtHistory.length > 30) this._dtHistory.shift();
@@ -44,14 +43,16 @@ export class DebugSystem {
         val('lives', gameState.lives) + ' &nbsp; ' +
         val('score', gameState.score)
       );
+      const enemyIds = engine.query(ENEMY);
+      const aliveEnemies = [...enemyIds].filter(id => engine.getComponent(id, DESTROYABLE)?.destroyState === null).length;
       lines.push(
         `<b>MAP &nbsp;</b> ` +
-        val('enemies', `${gameState.enemies.filter(id => engine.getComponent(id, ENEMY)?.alive).length}/${gameState.enemies.length}`) + ' &nbsp; ' +
-        val('bombs', gameState.bombs.length) + ' &nbsp; ' +
-        val('flames', gameState.flames.length) + ' &nbsp; ' +
-        val('softblocks', gameState.softBlocks.length) + ' &nbsp; ' +
-        val('powerup', gameState.powerup ? 1 : 0) + ' &nbsp; ' +
-        flag('door', !!gameState.door)
+        val('enemies', `${aliveEnemies}/${enemyIds.size}`) + ' &nbsp; ' +
+        val('bombs', engine.query(BOMB).size) + ' &nbsp; ' +
+        val('flames', engine.query(FLAME).size) + ' &nbsp; ' +
+        val('softblocks', engine.query(SOFT_BLOCK).size) + ' &nbsp; ' +
+        val('powerup', engine.getComponent('powerup', DESTROYABLE) ? 1 : 0) + ' &nbsp; ' +
+        flag('door', !!engine.getComponent('door', DESTROYABLE))
       );
     }
 

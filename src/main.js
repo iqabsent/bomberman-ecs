@@ -87,7 +87,7 @@ const init = async () => {
   engine.registerSingleton(sound);
 
   // Create and register the player entity
-  gameState.player = createPlayer(engine);
+  createPlayer(engine);
 
   // Fullscreen button — only shown where the API is available (not iOS Safari)
   const fsBtn = document.getElementById('fullscreen-btn');

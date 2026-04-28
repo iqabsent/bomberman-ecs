@@ -53,7 +53,7 @@ export class InputSystem {
     }
 
     if (gameState.currentState === STATE.PLAYING && !engine.paused) {
-      const id = gameState.player;
+      const id = 'player';
       const player = engine.getComponent(id, PLAYER);
       if (player) {
         const destroyable = engine.getComponent(id, DESTROYABLE);

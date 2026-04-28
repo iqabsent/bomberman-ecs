@@ -58,7 +58,7 @@ export class TouchInputSystem {
     }
 
     if (gameState.currentState === STATE.PLAYING && !engine.paused) {
-      const id = gameState.player;
+      const id = 'player';
       const player     = engine.getComponent(id, PLAYER);
       const destroyable = engine.getComponent(id, DESTROYABLE);
       if (player && destroyable?.destroyState === null) {

@@ -7,13 +7,6 @@ export class GameStateComponent {
     this.currentLevel = 0;
     this.lives = 0;
     this.score = 0;
-    this.player = null;
-    this.bombs = [];
-    this.flames = [];
-    this.powerup = null;
-    this.enemies = [];
-    this.softBlocks = [];
-    this.door = null;
     this.gameTime = 0;
     this.timeUp = false;
     this.gameMap = null;

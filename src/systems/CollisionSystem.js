@@ -1,5 +1,5 @@
 import { TYPE, STATE } from '../ecs/config.js';
-import { GAME_STATE, GRID_PLACEMENT, DESTROYABLE } from '../components';
+import { GAME_STATE, ENEMY, GRID_PLACEMENT, DESTROYABLE } from '../components';
 import { EVENT } from '../ecs/events.js';
 import { emitEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
@@ -17,7 +17,7 @@ export class CollisionSystem {
     const { gameMap } = gameState;
 
     const enemyCells = [];
-    for (const id of gameState.enemies) {
+    for (const id of engine.query(ENEMY)) {
       const destroyable = engine.getComponent(id, DESTROYABLE);
       if (!destroyable || destroyable.destroyState !== null) continue;
       const gp = engine.getComponent(id, GRID_PLACEMENT);
@@ -30,41 +30,40 @@ export class CollisionSystem {
       enemyCells.push({ gridX: gp.gridX, gridY: gp.gridY });
     }
 
-    if (gameState.door) {
-      const destroyable = engine.getComponent(gameState.door, DESTROYABLE);
-      const gp          = engine.getComponent(gameState.door, GRID_PLACEMENT);
+    {
+      const destroyable = engine.getComponent('door', DESTROYABLE);
+      const gp          = engine.getComponent('door', GRID_PLACEMENT);
       if (destroyable && destroyable.destroyState === null && gp) {
         const cell = gameMap[gp.gridY]?.[gp.gridX];
         if ((cell & TYPE.DOOR) && (cell & TYPE.EXPLOSION)) {
-          emitEvent(engine, gameState.door, { type: EVENT.DAMAGE_EXPLOSION });
+          emitEvent(engine, 'door', { type: EVENT.DAMAGE_EXPLOSION });
         }
       }
     }
 
-    if (gameState.powerup) {
-      const destroyable = engine.getComponent(gameState.powerup, DESTROYABLE);
-      const gp          = engine.getComponent(gameState.powerup, GRID_PLACEMENT);
+    {
+      const destroyable = engine.getComponent('powerup', DESTROYABLE);
+      const gp          = engine.getComponent('powerup', GRID_PLACEMENT);
       if (destroyable && destroyable.destroyState === null && gp) {
         const cell = gameMap[gp.gridY]?.[gp.gridX];
         if ((cell & TYPE.POWER) && (cell & TYPE.EXPLOSION)) {
-          emitEvent(engine, gameState.powerup, { type: EVENT.DAMAGE_EXPLOSION });
+          emitEvent(engine, 'powerup', { type: EVENT.DAMAGE_EXPLOSION });
         }
       }
     }
 
-    const id = gameState.player;
-    if (id) {
-      const destroyable = engine.getComponent(id, DESTROYABLE);
+    {
+      const destroyable = engine.getComponent('player', DESTROYABLE);
       if (destroyable && destroyable.destroyState === null) {
-        const gp = engine.getComponent(id, GRID_PLACEMENT);
+        const gp = engine.getComponent('player', GRID_PLACEMENT);
         if (gp && gameMap) {
           const cell = gameMap[gp.gridY]?.[gp.gridX];
           if (cell & TYPE.EXPLOSION) {
-            emitEvent(engine, id, { type: EVENT.DAMAGE_EXPLOSION });
+            emitEvent(engine, 'player', { type: EVENT.DAMAGE_EXPLOSION });
           }
           for (const ec of enemyCells) {
             if (ec.gridX === gp.gridX && ec.gridY === gp.gridY) {
-              emitEvent(engine, id, { type: EVENT.DAMAGE_ENEMY });
+              emitEvent(engine, 'player', { type: EVENT.DAMAGE_ENEMY });
               break;
             }
           }

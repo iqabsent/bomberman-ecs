@@ -30,8 +30,7 @@ export class EnemySystem {
         for (let i = 0; i < count; i++) {
           const spawn = EnemySystem.findSpawnPoint(gameState.gameMap, stats.spawn_distance);
           if (!spawn) continue;
-          const id = EnemySystem.createEnemy(type, stats, spawn.gridX, spawn.gridY, engine);
-          gameState.enemies.push(id);
+          EnemySystem.createEnemy(type, stats, spawn.gridX, spawn.gridY, engine);
         }
       }
       emitEvent(engine, GAME_STATE_ENTITY, { type: EVENT.ENEMY_LOAD_COMPLETE });
@@ -39,14 +38,12 @@ export class EnemySystem {
     }
 
     if (gameState.currentState === STATE.PLAYING || gameState.currentState === STATE.LEVEL_CLEAR) {
-      for (let i = gameState.enemies.length - 1; i >= 0; i--) {
-        const entityId    = gameState.enemies[i];
+      const toRemove = [];
+      for (const entityId of engine.query(ENEMY_C)) {
         const destroyable = engine.getComponent(entityId, DESTROYABLE);
-        if (destroyable?.destroyState === DESTROY.DESTROYED) {
-          gameState.enemies.splice(i, 1);
-          engine.removeEntity(entityId);
-        }
+        if (destroyable?.destroyState === DESTROY.DESTROYED) toRemove.push(entityId);
       }
+      for (const entityId of toRemove) engine.removeEntity(entityId);
     }
 
     if (gameState.currentState === STATE.PLAYING) {
@@ -58,7 +55,7 @@ export class EnemySystem {
         const stats         = ENEMY[enemyType];
         if (stats) {
           for (let j = 0; j < 8; j++) {
-            gameState.enemies.push(EnemySystem.createEnemy(enemyType, stats, gridX, gridY, engine));
+            EnemySystem.createEnemy(enemyType, stats, gridX, gridY, engine);
           }
         }
       }
@@ -68,7 +65,7 @@ export class EnemySystem {
         const { gridX, gridY } = powerupDestroyed.payload;
         const stats = ENEMY['PONTAN'];
         for (let j = 0; j < 8; j++) {
-          gameState.enemies.push(EnemySystem.createEnemy('PONTAN', stats, gridX, gridY, engine));
+          EnemySystem.createEnemy('PONTAN', stats, gridX, gridY, engine);
         }
       }
 
@@ -76,15 +73,11 @@ export class EnemySystem {
         const stats = ENEMY['PONTAN'];
         for (let i = 0; i < 5; i++) {
           const spawn = EnemySystem.findSpawnPoint(gameState.gameMap, 0);
-          if (spawn) {
-            const id = EnemySystem.createEnemy('PONTAN', stats, spawn.gridX, spawn.gridY, engine);
-            gameState.enemies.push(id);
-          }
+          if (spawn) EnemySystem.createEnemy('PONTAN', stats, spawn.gridX, spawn.gridY, engine);
         }
       }
 
-      for (let i = gameState.enemies.length - 1; i >= 0; i--) {
-        const entityId     = gameState.enemies[i];
+      for (const entityId of engine.query(ENEMY_C)) {
         const enemy       = engine.getComponent(entityId, ENEMY_C);
         const destroyable = engine.getComponent(entityId, DESTROYABLE);
         if (!enemy || !destroyable || destroyable.destroyState !== null) continue;
@@ -171,9 +164,11 @@ export class EnemySystem {
 
     gameState.score += enemy.points;
 
-    if (!gameState.enemies.some(id => engine.getComponent(id, DESTROYABLE)?.destroyState === null)) {
-      engine.getSingleton(SOUND).queue.push('pause');
+    let anyAlive = false;
+    for (const id of engine.query(ENEMY_C)) {
+      if (engine.getComponent(id, DESTROYABLE)?.destroyState === null) { anyAlive = true; break; }
     }
+    if (!anyAlive) engine.getSingleton(SOUND).queue.push('pause');
   }
 
   static findSpawnPoint(gameMap, minDist) {

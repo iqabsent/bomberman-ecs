@@ -6,10 +6,8 @@ import { GridPlacementComponent } from '../components/GridPlacementComponent.js'
 import { BLOCK_WIDTH, BLOCK_HEIGHT, RENDER_LAYER_POWER_UP, TYPE } from '../ecs/config.js';
 import { EVENT } from '../ecs/events.js';
 
-let nextId = 1;
-
 export function createPowerUp(engine, { gridX, gridY, type }) {
-  const id = `powerup-${nextId++}`;
+  const id = 'powerup';
 
   engine.addComponent(id, new TransformComponent({ x: gridX * BLOCK_WIDTH, y: gridY * BLOCK_HEIGHT }));
   engine.addComponent(id, new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_POWER_UP, spriteKey: 'POWER_' + type }));

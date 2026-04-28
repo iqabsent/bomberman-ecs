@@ -4,6 +4,7 @@ export class Engine {
     this.components = new Map();
     this.systems = new Map();
     this.singletons = new Map();
+    this._index = new Map();
     this.tick = this.tick.bind(this);
     this.running = false;
     this.paused = false;
@@ -14,12 +15,16 @@ export class Engine {
       this.components.set(entityId, new Map());
       this.entities.add(entityId);
     }
-    this.components.get(entityId).set(component.constructor.type, component);
+    const type = component.constructor.type;
+    this.components.get(entityId).set(type, component);
+    if (!this._index.has(type)) this._index.set(type, new Set());
+    this._index.get(type).add(entityId);
   }
 
   removeComponent(entityId, componentName) {
     const map = this.components.get(entityId);
     if (map) map.delete(componentName);
+    this._index.get(componentName)?.delete(entityId);
   }
 
   getComponent(entityId, componentName) {
@@ -28,8 +33,16 @@ export class Engine {
   }
 
   removeEntity(entityId) {
+    const map = this.components.get(entityId);
+    if (map) {
+      for (const type of map.keys()) this._index.get(type)?.delete(entityId);
+    }
     this.entities.delete(entityId);
     this.components.delete(entityId);
+  }
+
+  query(componentType) {
+    return this._index.get(componentType) ?? new Set();
   }
 
 

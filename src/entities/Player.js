@@ -8,10 +8,8 @@ import { CollisionComponent } from '../components/CollisionComponent.js';
 import { GridPlacementComponent } from '../components/GridPlacementComponent.js';
 import { BLOCK_WIDTH, BLOCK_HEIGHT, RENDER_LAYER_PLAYER, ANIM_TICKS_PER_FRAME_PLAYER } from '../ecs/config.js';
 
-let nextId = 1;
-
 export function createPlayer(engine) {
-  const id = `player-${nextId++}`;
+  const id = 'player';
 
   engine.addComponent(id, new TransformComponent({ x: BLOCK_WIDTH, y: BLOCK_HEIGHT }));
   engine.addComponent(id, new RenderComponent({ width: BLOCK_WIDTH, height: BLOCK_HEIGHT, layer: RENDER_LAYER_PLAYER }));

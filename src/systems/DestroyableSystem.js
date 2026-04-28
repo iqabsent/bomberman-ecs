@@ -1,5 +1,5 @@
 import { DESTROY } from '../ecs/config.js';
-import { GAME_STATE, GAME_STATE_ENTITY, ANIMATION, DESTROYABLE, GRID_PLACEMENT } from '../components';
+import { GAME_STATE, GAME_STATE_ENTITY, ANIMATION, DESTROYABLE, FLAME, GRID_PLACEMENT } from '../components';
 import { EVENT } from '../ecs/events.js';
 import { emitEvent, getEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
@@ -35,7 +35,7 @@ export class DestroyableSystem {
           if (destroyable.mapType) gameState.gameMap[gp.gridY][gp.gridX] &= ~destroyable.mapType;
           const anim = engine.getComponent(id, ANIMATION);
           if (anim) { anim.loop = false; anim.shouldAnimate = true; }
-          else setFlameOnComplete(engine, gameState, gp.gridX, gp.gridY, id);
+          else setFlameOnComplete(engine, gp.gridX, gp.gridY, id);
           if (destroyable.onTriggerEvent) {
             emitEvent(engine, id, { type: destroyable.onTriggerEvent, payload: { gridX: gp.gridX, gridY: gp.gridY } });
           }
@@ -57,12 +57,13 @@ export class DestroyableSystem {
   }
 }
 
-function setFlameOnComplete(engine, gameState, gridX, gridY, targetId) {
-  const flameId = gameState.flames.find(fid => {
-    const fp = engine.getComponent(fid, GRID_PLACEMENT);
-    return fp && fp.gridX === gridX && fp.gridY === gridY;
-  });
-  if (!flameId) return;
-  const anim = engine.getComponent(flameId, ANIMATION);
-  if (anim) anim.onCompleteEvent = { targetId, type: EVENT.ANIMATION_COMPLETED };
+function setFlameOnComplete(engine, gridX, gridY, targetId) {
+  for (const fid of engine.query(FLAME)) {
+    const gp = engine.getComponent(fid, GRID_PLACEMENT);
+    if (gp && gp.gridX === gridX && gp.gridY === gridY) {
+      const anim = engine.getComponent(fid, ANIMATION);
+      if (anim) anim.onCompleteEvent = { targetId, type: EVENT.ANIMATION_COMPLETED };
+      return;
+    }
+  }
 }

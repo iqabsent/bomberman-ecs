@@ -1,5 +1,5 @@
 import { BLOCK_WIDTH, BLOCK_HEIGHT, TYPE, DIRECTIONS, BOMB_CHAIN_FUSE_TICKS } from '../ecs/config.js';
-import { BOMB, DESTROYABLE, FUSE, GAME_STATE, GRID_PLACEMENT, PLAYER, SOUND, TRANSFORM } from '../components';
+import { BOMB, DESTROYABLE, FUSE, GAME_STATE, GRID_PLACEMENT, PLAYER, SOFT_BLOCK, SOUND, TRANSFORM } from '../components';
 import { createBomb } from '../entities/Bomb.js';
 import { createFlame } from '../entities/Flame.js';
 import { EVENT } from '../ecs/events.js';
@@ -17,7 +17,7 @@ export class BombSystem {
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
 
-    const id = gameState.player;
+    const id = 'player';
 
     // Handle placement requests
     {
@@ -30,7 +30,7 @@ export class BombSystem {
 
     // Tick fuses
     const toDetonate = [];
-    for (const bombId of gameState.bombs) {
+    for (const bombId of engine.query(BOMB)) {
       const bomb = engine.getComponent(bombId, BOMB);
       const fuse = engine.getComponent(bombId, FUSE);
       if (!bomb || !fuse) continue;
@@ -47,14 +47,15 @@ export class BombSystem {
       if (fuse.ticks <= 0) toDetonate.push(bombId);
     }
 
-    // D-key detonation — detonate oldest owned bomb (FIFO)
+    // D-key detonation — detonate oldest owned bomb (FIFO via Set insertion order)
     {
       const player = engine.getComponent(id, PLAYER);
       if (player && getEvent(engine, id, EVENT.BOMB_DETONATION_INTENT)) {
-        const bombId = gameState.bombs.find(bid => {
+        let bombId;
+        for (const bid of engine.query(BOMB)) {
           const b = engine.getComponent(bid, BOMB);
-          return b && b.ownerId === id;
-        });
+          if (b && b.ownerId === id) { bombId = bid; break; }
+        }
         if (bombId && !toDetonate.includes(bombId)) toDetonate.push(bombId);
       }
     }
@@ -74,7 +75,7 @@ export class BombSystem {
 
     gameState.gameMap[gridY][gridX] |= TYPE.BOMB;
 
-    gameState.bombs.push(createBomb(engine, { gridX, gridY, bombYield: player.bombYield, ownerId }));
+    createBomb(engine, { gridX, gridY, bombYield: player.bombYield, ownerId });
 
     engine.getSingleton(SOUND).queue.push('plant');
 
@@ -86,8 +87,6 @@ export class BombSystem {
     const bombPlacement = engine.getComponent(bombId, GRID_PLACEMENT);
     if (!bomb || !bombPlacement) return;
 
-    const idx = gameState.bombs.indexOf(bombId);
-    if (idx > -1) gameState.bombs.splice(idx, 1);
     engine.removeEntity(bombId);
 
     gameState.gameMap[bombPlacement.gridY][bombPlacement.gridX] &= ~TYPE.BOMB;
@@ -117,29 +116,29 @@ export class BombSystem {
         }
 
         if (cell & TYPE.SOFT_BLOCK) {
-          const softBlockId = gameState.softBlocks.find(id => {
-            const gp = engine.getComponent(id, GRID_PLACEMENT);
-            return gp && gp.gridX === tx && gp.gridY === ty;
-          });
-          if (softBlockId) {
-            const sbDestroyable = engine.getComponent(softBlockId, DESTROYABLE);
-            if (sbDestroyable && sbDestroyable.destroyState === null) emitEvent(engine, softBlockId, { type: EVENT.DAMAGE_EXPLOSION });
+          for (const sbId of engine.query(SOFT_BLOCK)) {
+            const gp = engine.getComponent(sbId, GRID_PLACEMENT);
+            if (gp && gp.gridX === tx && gp.gridY === ty) {
+              const sbDestroyable = engine.getComponent(sbId, DESTROYABLE);
+              if (sbDestroyable && sbDestroyable.destroyState === null) emitEvent(engine, sbId, { type: EVENT.DAMAGE_EXPLOSION });
+              break;
+            }
           }
           hit = true;
           continue;
         }
 
         if (cell & TYPE.BOMB) {
-          const chainId = gameState.bombs.find(id => {
-            const gp = engine.getComponent(id, GRID_PLACEMENT);
-            return gp && gp.gridX === tx && gp.gridY === ty;
-          });
-          if (chainId) {
-            const chainBomb = engine.getComponent(chainId, BOMB);
-            const chainFuse = engine.getComponent(chainId, FUSE);
-            if (chainBomb && chainFuse && !chainBomb.chained) {
-              chainBomb.chained = true;
-              chainFuse.ticks = BOMB_CHAIN_FUSE_TICKS;
+          for (const chainId of engine.query(BOMB)) {
+            const gp = engine.getComponent(chainId, GRID_PLACEMENT);
+            if (gp && gp.gridX === tx && gp.gridY === ty) {
+              const chainBomb = engine.getComponent(chainId, BOMB);
+              const chainFuse = engine.getComponent(chainId, FUSE);
+              if (chainBomb && chainFuse && !chainBomb.chained) {
+                chainBomb.chained = true;
+                chainFuse.ticks = BOMB_CHAIN_FUSE_TICKS;
+              }
+              break;
             }
           }
           hit = true;
@@ -163,6 +162,6 @@ export class BombSystem {
       gameState.gameMap[gridY][gridX] |= TYPE.EXPLOSION;
     }
 
-    gameState.flames.push(createFlame(engine, { gridX, gridY, type }));
+    createFlame(engine, { gridX, gridY, type });
   }
 }

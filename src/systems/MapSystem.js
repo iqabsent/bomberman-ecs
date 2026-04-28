@@ -1,5 +1,5 @@
 import { TYPE, MAP_WIDTH, MAP_HEIGHT, LEVEL } from '../ecs/config.js';
-import { GAME_STATE, GAME_STATE_ENTITY, GRID_PLACEMENT, DESTROYABLE } from '../components';
+import { GAME_STATE, GAME_STATE_ENTITY, GRID_PLACEMENT, DESTROYABLE, SOFT_BLOCK } from '../components';
 import { EVENT } from '../ecs/events.js';
 import { getEvent, emitEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 import { createSoftBlock } from '../entities/SoftBlock.js';
@@ -42,7 +42,7 @@ export class MapSystem {
         for (let x = 0; x < map[y].length; x++) {
           if (map[y][x] & TYPE.SOFT_BLOCK) {
             gameState.softBlockCount++;
-            gameState.softBlocks.push(createSoftBlock(engine, { gridX: x, gridY: y }));
+            createSoftBlock(engine, { gridX: x, gridY: y });
           }
         }
       }
@@ -51,14 +51,12 @@ export class MapSystem {
       return;
     }
 
-    const damaged = gameState.softBlocks.filter(id => getEvent(engine, id, EVENT.DAMAGE_EXPLOSION));
+    const damaged = [];
+    for (const id of engine.query(SOFT_BLOCK)) {
+      if (getEvent(engine, id, EVENT.DAMAGE_EXPLOSION)) damaged.push(id);
+    }
 
     if (damaged.length > 0) {
-      for (const id of damaged) {
-        const idx = gameState.softBlocks.indexOf(id);
-        if (idx > -1) gameState.softBlocks.splice(idx, 1);
-      }
-
       const levelPower = LEVEL[gameState.currentLevel % LEVEL.length].power;
 
       for (const id of damaged) {
@@ -71,11 +69,11 @@ export class MapSystem {
         if (!gameState.powerSpawned && (!(n - 1) || Math.random() < 1 / (n - 1))) {
           gameState.powerSpawned = true;
           gameState.gameMap[gridY][gridX] = TYPE.PASSABLE | TYPE.POWER;
-          gameState.powerup = createPowerUp(engine, { gridX, gridY, type: levelPower });
+          createPowerUp(engine, { gridX, gridY, type: levelPower });
         } else if (!gameState.doorSpawned && (!n || Math.random() < 1 / n)) {
           gameState.doorSpawned = true;
           gameState.gameMap[gridY][gridX] = TYPE.PASSABLE | TYPE.DOOR;
-          gameState.door = createDoor(engine, { gridX, gridY });
+          createDoor(engine, { gridX, gridY });
         } else {
           gameState.gameMap[gridY][gridX] = TYPE.PASSABLE;
         }
@@ -84,17 +82,17 @@ export class MapSystem {
       }
     }
 
-    if (gameState.door) {
-      const destroyable = engine.getComponent(gameState.door, DESTROYABLE);
-      if (destroyable && destroyable.destroyState === null && getEvent(engine, gameState.door, EVENT.DAMAGE_EXPLOSION)) {
-        emitEvent(engine, gameState.door, { type: EVENT.DESTROY_TRIGGERED });
+    {
+      const destroyable = engine.getComponent('door', DESTROYABLE);
+      if (destroyable && destroyable.destroyState === null && getEvent(engine, 'door', EVENT.DAMAGE_EXPLOSION)) {
+        emitEvent(engine, 'door', { type: EVENT.DESTROY_TRIGGERED });
       }
     }
 
-    if (gameState.powerup) {
-      const destroyable = engine.getComponent(gameState.powerup, DESTROYABLE);
-      if (destroyable && destroyable.destroyState === null && getEvent(engine, gameState.powerup, EVENT.DAMAGE_EXPLOSION)) {
-        emitEvent(engine, gameState.powerup, { type: EVENT.DESTROY_TRIGGERED });
+    {
+      const destroyable = engine.getComponent('powerup', DESTROYABLE);
+      if (destroyable && destroyable.destroyState === null && getEvent(engine, 'powerup', EVENT.DAMAGE_EXPLOSION)) {
+        emitEvent(engine, 'powerup', { type: EVENT.DESTROY_TRIGGERED });
       }
     }
   }
