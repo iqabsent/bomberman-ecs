@@ -1,5 +1,5 @@
 import { TYPE, MAP_WIDTH, MAP_HEIGHT, LEVEL } from '../ecs/config.js';
-import { GAME_STATE, GAME_STATE_ENTITY } from '../components';
+import { GAME_STATE, GAME_STATE_ENTITY, GRID_PLACEMENT, DESTROYABLE } from '../components';
 import { EVENT } from '../ecs/events.js';
 import { getEvent, emitEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 import { createSoftBlock } from '../entities/SoftBlock.js';
@@ -13,6 +13,7 @@ export class MapSystem {
 
   apply(engine) {
     clearEventsByType(engine, EVENT.MAP_LOAD_COMPLETE);
+    clearEventsByType(engine, EVENT.DESTROY_TRIGGERED);
 
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
@@ -50,33 +51,50 @@ export class MapSystem {
       return;
     }
 
-    const reveals = gameState.softBlocks
-      .map(id => ({ id, ev: getEvent(engine, id, EVENT.SOFT_BLOCK_DESTROYED) }))
-      .filter(({ ev }) => ev);
-    if (reveals.length === 0) return;
+    const damaged = gameState.softBlocks.filter(id => getEvent(engine, id, EVENT.DAMAGE_EXPLOSION));
 
-    for (const { id } of reveals) {
-      const idx = gameState.softBlocks.indexOf(id);
-      if (idx > -1) gameState.softBlocks.splice(idx, 1);
+    if (damaged.length > 0) {
+      for (const id of damaged) {
+        const idx = gameState.softBlocks.indexOf(id);
+        if (idx > -1) gameState.softBlocks.splice(idx, 1);
+      }
+
+      const levelPower = LEVEL[gameState.currentLevel % LEVEL.length].power;
+
+      for (const id of damaged) {
+        const gp = engine.getComponent(id, GRID_PLACEMENT);
+        if (!gp) continue;
+        const { gridX, gridY } = gp;
+        if (gameState.softBlockCount > 0) gameState.softBlockCount--;
+        const n = gameState.softBlockCount;
+
+        if (!gameState.powerSpawned && (!(n - 1) || Math.random() < 1 / (n - 1))) {
+          gameState.powerSpawned = true;
+          gameState.gameMap[gridY][gridX] = TYPE.PASSABLE | TYPE.POWER;
+          gameState.powerup = createPowerUp(engine, { gridX, gridY, type: levelPower });
+        } else if (!gameState.doorSpawned && (!n || Math.random() < 1 / n)) {
+          gameState.doorSpawned = true;
+          gameState.gameMap[gridY][gridX] = TYPE.PASSABLE | TYPE.DOOR;
+          gameState.door = createDoor(engine, { gridX, gridY });
+        } else {
+          gameState.gameMap[gridY][gridX] = TYPE.PASSABLE;
+        }
+
+        emitEvent(engine, id, { type: EVENT.DESTROY_TRIGGERED });
+      }
     }
 
-    const levelPower = LEVEL[gameState.currentLevel % LEVEL.length].power;
+    if (gameState.door) {
+      const destroyable = engine.getComponent(gameState.door, DESTROYABLE);
+      if (destroyable && destroyable.destroyState === null && getEvent(engine, gameState.door, EVENT.DAMAGE_EXPLOSION)) {
+        emitEvent(engine, gameState.door, { type: EVENT.DESTROY_TRIGGERED });
+      }
+    }
 
-    for (const { ev } of reveals) {
-      const { gridX, gridY } = ev.payload;
-      if (gameState.softBlockCount > 0) gameState.softBlockCount--;
-      const n = gameState.softBlockCount;
-
-      if (!gameState.powerSpawned && (!(n - 1) || Math.random() < 1 / (n - 1))) {
-        gameState.powerSpawned = true;
-        gameState.gameMap[gridY][gridX] = TYPE.PASSABLE | TYPE.POWER;
-        gameState.powerup = createPowerUp(engine, { gridX, gridY, type: levelPower });
-      } else if (!gameState.doorSpawned && (!n || Math.random() < 1 / n)) {
-        gameState.doorSpawned = true;
-        gameState.gameMap[gridY][gridX] = TYPE.PASSABLE | TYPE.DOOR;
-        gameState.door = createDoor(engine, { gridX, gridY });
-      } else {
-        gameState.gameMap[gridY][gridX] = TYPE.PASSABLE;
+    if (gameState.powerup) {
+      const destroyable = engine.getComponent(gameState.powerup, DESTROYABLE);
+      if (destroyable && destroyable.destroyState === null && getEvent(engine, gameState.powerup, EVENT.DAMAGE_EXPLOSION)) {
+        emitEvent(engine, gameState.powerup, { type: EVENT.DESTROY_TRIGGERED });
       }
     }
   }

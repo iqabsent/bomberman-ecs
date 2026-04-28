@@ -77,11 +77,22 @@ export class PlayerSystem {
         const immune = player.invincibilityTimer > 0 || player.fireproof;
 
         if (destroyable.destroyState === null) {
-          if (getEvent(engine, id, EVENT.DAMAGE_FIRE)  && !immune)                       emitEvent(engine, id, { type: EVENT.DESTROY_TRIGGERED });
-          if (getEvent(engine, id, EVENT.DAMAGE_ENEMY) && player.invincibilityTimer <= 0) emitEvent(engine, id, { type: EVENT.DESTROY_TRIGGERED });
+          const hitByFlame = getEvent(engine, id, EVENT.DAMAGE_EXPLOSION) && !immune;
+          const hitByEnemy = getEvent(engine, id, EVENT.DAMAGE_ENEMY) && player.invincibilityTimer <= 0;
+
+          if (hitByFlame || hitByEnemy) {
+            destroyable.destroyState = DESTROY.DESTROYING;
+            velocity.vx = 0;
+            velocity.vy = 0;
+            anim.animationKey = 'MAN_DEATH';
+            anim.loop = false;
+            anim.shouldAnimate = true;
+            engine.getSingleton(SOUND).queue.push('burn');
+            break playerTick;
+          }
         }
 
-        if (destroyable.destroyState === null && !getEvent(engine, id, EVENT.DESTROY_TRIGGERED)) {
+        if (destroyable.destroyState === null) {
           // Apply input direction to velocity and animation
           const inv = player.invincibilityTimer > 0;
           velocity.vx = player.inputDx * player.movementSpeed;
@@ -130,19 +141,7 @@ export class PlayerSystem {
           break playerTick;
         }
 
-        // First frame of death — kick off the animation
-        if (getEvent(engine, id, EVENT.DESTROY_TRIGGERED)) {
-          destroyable.destroyState = DESTROY.DESTROYING;
-          velocity.vx = 0;
-          velocity.vy = 0;
-          anim.animationKey = 'MAN_DEATH';
-          anim.loop = false;
-          anim.shouldAnimate = true;
-          engine.getSingleton(SOUND).queue.push('burn');
-          break playerTick;
-        }
-
-        // Still playing — wait for death animation to complete
+        // Wait for death animation to complete
         if (!getEvent(engine, id, EVENT.ANIMATION_COMPLETED)) break playerTick;
 
         // Animation complete — handle death

@@ -12,7 +12,7 @@ export class BombSystem {
 
   apply(engine, dt) {
 
-    clearEventsByType(engine, EVENT.DESTROY_TRIGGERED);
+    clearEventsByType(engine, EVENT.DAMAGE_EXPLOSION);
 
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState) return;
@@ -123,26 +123,10 @@ export class BombSystem {
           });
           if (softBlockId) {
             const sbDestroyable = engine.getComponent(softBlockId, DESTROYABLE);
-            if (sbDestroyable && sbDestroyable.destroyState === null) emitEvent(engine, softBlockId, { type: EVENT.DESTROY_TRIGGERED });
+            if (sbDestroyable && sbDestroyable.destroyState === null) emitEvent(engine, softBlockId, { type: EVENT.DAMAGE_EXPLOSION });
           }
           hit = true;
           continue;
-        }
-
-        if (cell & TYPE.POWER) {
-          const entityId = gameState.powerup;
-          if (entityId) {
-            const puDestroyable = engine.getComponent(entityId, DESTROYABLE);
-            if (puDestroyable && puDestroyable.destroyState === null) emitEvent(engine, entityId, { type: EVENT.DESTROY_TRIGGERED });
-          }
-        }
-
-        if (cell & TYPE.DOOR) {
-          if (gameState.door) {
-            const doorDestroyable = engine.getComponent(gameState.door, DESTROYABLE);
-            if (doorDestroyable && doorDestroyable.destroyState === null) emitEvent(engine, gameState.door, { type: EVENT.DESTROY_TRIGGERED });
-          }
-          // Door doesn't block flame spread
         }
 
         if (cell & TYPE.BOMB) {

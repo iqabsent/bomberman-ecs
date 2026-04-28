@@ -94,7 +94,7 @@ export class EnemySystem {
         const anim          = engine.getComponent(entityId, ANIMATION);
         const render        = engine.getComponent(entityId, RENDER);
 
-        if (getEvent(engine, entityId, EVENT.DESTROY_TRIGGERED)) {
+        if (getEvent(engine, entityId, EVENT.DAMAGE_EXPLOSION)) {
           this.killEnemy(enemy, anim, render, destroyable, gameState, engine);
           continue;
         }

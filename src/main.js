@@ -65,8 +65,8 @@ const init = async () => {
   engine.registerSystem('collision',     new CollisionSystem());
   engine.registerSystem('animation',     new AnimationSystem());
   engine.registerSystem('explosion',     new ExplosionSystem());
-  engine.registerSystem('destroyable',   new DestroyableSystem());
   engine.registerSystem('map',           new MapSystem());
+  engine.registerSystem('destroyable',   new DestroyableSystem());
   engine.registerSystem('player',        new PlayerSystem());
   engine.registerSystem('collectible',   new CollectibleSystem());
   engine.registerSystem('enemy',         new EnemySystem());
