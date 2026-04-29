@@ -1,5 +1,5 @@
 import { STATE, TYPE } from '../ecs/config.js';
-import { BOMB, ENEMY, FLAME, GAME_STATE, SOFT_BLOCK, TRANSFORM, ANIMATION, PLAYER, DESTROYABLE, COLLISION } from '../components';
+import { BOMB, ENEMY, FLAME, GAME_STATE, SOFT_BLOCK, TRANSFORM, ANIMATION, PLAYER, DESTROYABLE, MOVABLE } from '../components';
 
 const STATE_NAMES = Object.fromEntries(Object.entries(STATE).map(([k, v]) => [v, k]));
 
@@ -23,7 +23,7 @@ export class DebugSystem {
     const destroyable = engine.getComponent('player', DESTROYABLE);
     const transform = engine.getComponent('player', TRANSFORM);
     const anim      = engine.getComponent('player', ANIMATION);
-    const collision = engine.getComponent('player', COLLISION);
+    const collision = engine.getComponent('player', MOVABLE);
 
     this._dtHistory.push(dt);
     if (this._dtHistory.length > 30) this._dtHistory.shift();

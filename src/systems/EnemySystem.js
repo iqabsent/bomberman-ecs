@@ -2,7 +2,7 @@ import {
   BLOCK_WIDTH, BLOCK_HEIGHT, MAP_WIDTH, MAP_HEIGHT,
   TYPE, DIRECTIONS, ENEMY, LEVEL, STATE, DESTROY
 } from '../ecs/config.js';
-import { GAME_STATE, GAME_STATE_ENTITY, TRANSFORM, ANIMATION, RENDER, ENEMY as ENEMY_C, VELOCITY, COLLISION, DESTROYABLE, GRID_PLACEMENT, SOUND } from '../components';
+import { GAME_STATE, GAME_STATE_ENTITY, TRANSFORM, ANIMATION, RENDER, ENEMY as ENEMY_C, VELOCITY, MOVABLE, DESTROYABLE, GRID_PLACEMENT, SOUND } from '../components';
 import { createEnemy as createEnemyEntity } from '../entities/Enemy.js';
 import { EVENT } from '../ecs/events.js';
 import { getEvent, emitEvent, clearEventsByType } from '../ecs/eventHelpers.js';
@@ -93,7 +93,7 @@ export class EnemySystem {
         }
 
         const velocity  = engine.getComponent(entityId, VELOCITY);
-        const collision = engine.getComponent(entityId, COLLISION);
+        const collision = engine.getComponent(entityId, MOVABLE);
 
         if (collision.blocked) {
           enemy.speed = 0;

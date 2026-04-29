@@ -1,5 +1,5 @@
 import { BLOCK_WIDTH, BLOCK_HEIGHT, MAP_WIDTH, MAP_HEIGHT, TYPE, STATE } from '../ecs/config.js';
-import { TRANSFORM, VELOCITY, DESTROYABLE, COLLISION, GRID_PLACEMENT, GAME_STATE } from '../components';
+import { TRANSFORM, VELOCITY, DESTROYABLE, MOVABLE, GRID_PLACEMENT, GAME_STATE } from '../components';
 
 export class MovementSystem {
   constructor() {
@@ -21,7 +21,7 @@ export class MovementSystem {
       const destroyable = engine.getComponent(id, DESTROYABLE);
       if (destroyable && destroyable.destroyState !== null) continue;
 
-      const collision = engine.getComponent(id, COLLISION);
+      const collision = engine.getComponent(id, MOVABLE);
       const canPass   = collision ? collision.canPass : 0;
       // FLAG: read by EnemySystem to reset AI state — revisit when proper message passing is in place
       if (collision) collision.blocked = false;

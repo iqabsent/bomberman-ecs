@@ -1,5 +1,5 @@
 import { BLOCK_WIDTH, BLOCK_HEIGHT, STATE, SPAWN, SPEED, MAX_BOMBS, MAX_YIELD, INVINCIBILITY_TIMER, TYPE, POWER, LEVEL, DESTROY } from '../ecs/config.js';
-import { GRID_PLACEMENT, GAME_STATE, ENEMY, TRANSFORM, VELOCITY, ANIMATION, PLAYER, SOUND, COLLECTIBLE, COLLISION, DESTROYABLE } from '../components';
+import { GRID_PLACEMENT, GAME_STATE, ENEMY, TRANSFORM, VELOCITY, ANIMATION, PLAYER, SOUND, COLLECTIBLE, MOVABLE, DESTROYABLE } from '../components';
 import { EVENT } from '../ecs/events.js';
 import { emitEvent, getEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
@@ -33,7 +33,7 @@ export class PlayerSystem {
         const anim          = engine.getComponent(id, ANIMATION);
         const destroyable   = engine.getComponent(id, DESTROYABLE);
         const gridPlacement = engine.getComponent(id, GRID_PLACEMENT);
-        const collision     = engine.getComponent(id, COLLISION);
+        const collision     = engine.getComponent(id, MOVABLE);
         PlayerSystem.spawnPlayer(player, transform, velocity, anim, destroyable, gridPlacement, collision);
         if (spawnEvent.payload === SPAWN.GAME_SPAWN) {
           PlayerSystem.resetPlayerStats(player, collision);
@@ -58,7 +58,7 @@ export class PlayerSystem {
         const anim        = engine.getComponent(id, ANIMATION);
         const transform   = engine.getComponent(id, TRANSFORM);
         const velocity    = engine.getComponent(id, VELOCITY);
-        const collision   = engine.getComponent(id, COLLISION);
+        const collision   = engine.getComponent(id, MOVABLE);
         if (!destroyable || !anim || !transform || !velocity) break playerTick;
 
         // Tick invincibility down every frame regardless of explosions
