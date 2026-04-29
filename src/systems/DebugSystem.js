@@ -1,10 +1,22 @@
 import { STATE, TYPE } from '../ecs/config.js';
-import { BOMB, ENEMY, FLAME, GAME_STATE, SOFT_BLOCK, TRANSFORM, ANIMATION, PLAYER, DESTROYABLE, MOVABLE } from '../components';
+import { BOMB, ENEMY, EVENTS, FLAME, GAME_STATE, SOFT_BLOCK, TRANSFORM, ANIMATION, PLAYER, DESTROYABLE, MOVABLE } from '../components';
 
 const STATE_NAMES = Object.fromEntries(Object.entries(STATE).map(([k, v]) => [v, k]));
 
 const flag = (label, val) => `<span style="color:${val ? '#0f0' : '#888'}">${label}</span>`;
 const val  = (label, v)   => `<span style="color:#ff0">${label}:<b>${v}</b></span>`;
+
+const EVENT_TTL = 180; // ticks (~3s at 60fps)
+
+function abbreviateId(id) {
+  return id
+    .replace('game-state-entity', 'gse')
+    .replace('softblock-', 'sb')
+    .replace('enemy-', 'e')
+    .replace('flame-', 'fl')
+    .replace('bomb-', 'b')
+    .replace('powerup', 'pu');
+}
 
 export class DebugSystem {
   constructor() {
@@ -12,6 +24,7 @@ export class DebugSystem {
     this.runsWhenPaused = true;
     this.el = document.getElementById('debug');
     this._dtHistory = [];
+    this._eventLog = new Map(); // key → { shortId, type, ttl }
   }
 
   apply(engine, dt) {
@@ -74,6 +87,31 @@ export class DebugSystem {
         flag('canPassWall', collision?.canPass & TYPE.SOFT_BLOCK) + ' &nbsp; ' +
         flag('fireproof', player?.fireproof)
       );
+    }
+
+    // Decay existing log entries
+    for (const [key, entry] of this._eventLog) {
+      entry.ttl -= dt;
+      if (entry.ttl <= 0) this._eventLog.delete(key);
+    }
+
+    // Refresh/add events seen this frame
+    for (const id of engine.entities) {
+      const ec = engine.getComponent(id, EVENTS);
+      if (!ec || !ec.queue.length) continue;
+      const shortId = abbreviateId(id);
+      for (const event of ec.queue) {
+        this._eventLog.set(`${shortId}:${event.type}`, { shortId, type: event.type, ttl: EVENT_TTL });
+      }
+    }
+
+    if (this._eventLog.size) {
+      const parts = [...this._eventLog.values()].map(({ shortId, type, ttl }) => {
+        const alpha = (ttl / EVENT_TTL).toFixed(2);
+        return `<span style="color:rgba(0,255,255,${alpha})">${shortId}</span>` +
+               `:<span style="color:rgba(255,255,255,${alpha})">${type}</span>`;
+      });
+      lines.push(`<b>EVT &nbsp;</b> ` + parts.join(' &nbsp; '));
     }
 
     this.el.innerHTML = lines.join('<br>');

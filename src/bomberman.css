@@ -52,6 +52,6 @@ canvas {
   line-height: 1.8;
   box-sizing: border-box;
 }
-/* 5 lines × (12px × 1.8) + 8px padding = 116px */
-body.debug { --debug-h: 116px; }
+/* 6 lines × (12px × 1.8) + 8px padding = 138px */
+body.debug { --debug-h: 138px; }
 body.debug #debug { display: block; }
