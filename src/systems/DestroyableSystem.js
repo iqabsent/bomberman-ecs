@@ -9,7 +9,6 @@ export class DestroyableSystem {
   }
 
   apply(engine) {
-    clearEventsByType(engine, EVENT.SOFT_BLOCK_DESTROYED);
     clearEventsByType(engine, EVENT.DOOR_DESTROYED);
     clearEventsByType(engine, EVENT.POWERUP_DESTROYED);
 
@@ -20,13 +19,13 @@ export class DestroyableSystem {
       const destroyable = engine.getComponent(id, DESTROYABLE);
       if (!destroyable) continue;
 
-      // All destroyable entities: advance DESTROYING → DESTROYED when animation completes
+      // All destroyables: advance DESTROYING → DESTROYED when own animation completes
       if (destroyable.destroyState === DESTROY.DESTROYING && getEvent(engine, id, EVENT.ANIMATION_COMPLETED)) {
         destroyable.destroyState = DESTROY.DESTROYED;
       }
 
-      // Entities without component-driven behaviour (enemies, player) handle their own lifecycle
-      if (!destroyable.onTriggerEvent && !destroyable.onDestroyedEvent) continue;
+      // Self-managed destroyables (enemy, player, bomb, flame) handle their own lifecycle
+      if (!destroyable.managed) continue;
 
       if (destroyable.destroyState === null && getEvent(engine, id, EVENT.DESTROY_TRIGGERED)) {
         destroyable.destroyState = DESTROY.DESTROYING;
@@ -35,17 +34,22 @@ export class DestroyableSystem {
           if (destroyable.mapType) gameState.gameMap[gp.gridY][gp.gridX] &= ~destroyable.mapType;
           const anim = engine.getComponent(id, ANIMATION);
           if (anim) { anim.loop = false; anim.shouldAnimate = true; }
-          else setFlameOnComplete(engine, gp.gridX, gp.gridY, id);
-          if (destroyable.onTriggerEvent) {
-            emitEvent(engine, id, { type: destroyable.onTriggerEvent, payload: { gridX: gp.gridX, gridY: gp.gridY } });
-          }
+        }
+      }
+
+      // Managed destroyables without animation wait for a flame at their cell to finish
+      if (destroyable.destroyState === DESTROY.DESTROYING && !engine.getComponent(id, ANIMATION)) {
+        const gp = engine.getComponent(id, GRID_PLACEMENT);
+        if (gp && flameCompletedAt(engine, gp.gridX, gp.gridY)) {
+          destroyable.destroyState = DESTROY.DESTROYED;
         }
       }
 
       if (destroyable.destroyState === DESTROY.DESTROYED) {
         const gp = engine.getComponent(id, GRID_PLACEMENT);
-        if (destroyable.onDestroyedEvent && gp) {
-          emitEvent(engine, GAME_STATE_ENTITY, { type: destroyable.onDestroyedEvent, payload: { gridX: gp.gridX, gridY: gp.gridY } });
+        if (gp) {
+          if (id === 'door')    emitEvent(engine, GAME_STATE_ENTITY, { type: EVENT.DOOR_DESTROYED,    payload: { gridX: gp.gridX, gridY: gp.gridY } });
+          if (id === 'powerup') emitEvent(engine, GAME_STATE_ENTITY, { type: EVENT.POWERUP_DESTROYED, payload: { gridX: gp.gridX, gridY: gp.gridY } });
         }
         if (destroyable.shouldPersist) {
           engine.removeComponent(id, DESTROYABLE);
@@ -57,13 +61,12 @@ export class DestroyableSystem {
   }
 }
 
-function setFlameOnComplete(engine, gridX, gridY, targetId) {
+function flameCompletedAt(engine, gridX, gridY) {
   for (const fid of engine.query(FLAME)) {
     const gp = engine.getComponent(fid, GRID_PLACEMENT);
-    if (gp && gp.gridX === gridX && gp.gridY === gridY) {
-      const anim = engine.getComponent(fid, ANIMATION);
-      if (anim) anim.onCompleteEvent = { targetId, type: EVENT.ANIMATION_COMPLETED };
-      return;
+    if (gp && gp.gridX === gridX && gp.gridY === gridY && getEvent(engine, fid, EVENT.ANIMATION_COMPLETED)) {
+      return true;
     }
   }
+  return false;
 }
