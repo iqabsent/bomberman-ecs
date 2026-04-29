@@ -37,10 +37,10 @@ export class DestroyableSystem {
         }
       }
 
-      // Managed destroyables without animation wait for a flame at their cell to finish
+      // Managed destroyables without animation wait for all flames at their cell to leave
       if (destroyable.destroyState === DESTROY.DESTROYING && !engine.getComponent(id, ANIMATION)) {
         const gp = engine.getComponent(id, GRID_PLACEMENT);
-        if (gp && flameCompletedAt(engine, gp.gridX, gp.gridY)) {
+        if (gp && !flameAt(engine, gp.gridX, gp.gridY)) {
           destroyable.destroyState = DESTROY.DESTROYED;
         }
       }
@@ -61,12 +61,10 @@ export class DestroyableSystem {
   }
 }
 
-function flameCompletedAt(engine, gridX, gridY) {
+function flameAt(engine, gridX, gridY) {
   for (const fid of engine.query(FLAME)) {
     const gp = engine.getComponent(fid, GRID_PLACEMENT);
-    if (gp && gp.gridX === gridX && gp.gridY === gridY && getEvent(engine, fid, EVENT.ANIMATION_COMPLETED)) {
-      return true;
-    }
+    if (gp && gp.gridX === gridX && gp.gridY === gridY) return true;
   }
   return false;
 }
