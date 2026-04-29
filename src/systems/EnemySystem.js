@@ -95,7 +95,7 @@ export class EnemySystem {
         const velocity  = engine.getComponent(entityId, VELOCITY);
         const collision = engine.getComponent(entityId, MOVABLE);
 
-        if (collision.blocked) {
+        if (getEvent(engine, entityId, EVENT.MOVEMENT_BLOCKED)) {
           enemy.speed = 0;
           enemy.recentlyActed = false;
         }

@@ -1,5 +1,7 @@
 import { BLOCK_WIDTH, BLOCK_HEIGHT, MAP_WIDTH, MAP_HEIGHT, TYPE, STATE } from '../ecs/config.js';
 import { TRANSFORM, VELOCITY, DESTROYABLE, MOVABLE, GRID_PLACEMENT, GAME_STATE } from '../components';
+import { EVENT } from '../ecs/events.js';
+import { emitEvent, clearEventsByType } from '../ecs/eventHelpers.js';
 
 export class MovementSystem {
   constructor() {
@@ -7,6 +9,8 @@ export class MovementSystem {
   }
 
   apply(engine, dt) {
+    clearEventsByType(engine, EVENT.MOVEMENT_BLOCKED);
+
     const gameState = engine.getSingleton(GAME_STATE);
     if (!gameState || gameState.currentState !== STATE.PLAYING) return;
 
@@ -23,8 +27,6 @@ export class MovementSystem {
 
       const collision = engine.getComponent(id, MOVABLE);
       const canPass   = collision ? collision.canPass : 0;
-      // FLAG: read by EnemySystem to reset AI state — revisit when proper message passing is in place
-      if (collision) collision.blocked = false;
 
       // Clamp movement against blocked cells
       if (gameMap && (velocity.vx !== 0 || velocity.vy !== 0)) {
@@ -39,7 +41,7 @@ export class MovementSystem {
               velocity.vx = 0;
               transform.x = gridX * BLOCK_WIDTH;
               gridPlacement.gridX = gridX;
-              if (collision) collision.blocked = true;
+              emitEvent(engine, id, { type: EVENT.MOVEMENT_BLOCKED });
             }
           }
         }
@@ -52,7 +54,7 @@ export class MovementSystem {
               velocity.vy = 0;
               transform.y = gridY * BLOCK_HEIGHT;
               gridPlacement.gridY = gridY;
-              if (collision) collision.blocked = true;
+              emitEvent(engine, id, { type: EVENT.MOVEMENT_BLOCKED });
             }
           }
         }
